@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import click
 
 from tech_debtor import __version__
 from tech_debtor.analyzers.base import parse_python
-from tech_debtor.analyzers.churn import ChurnAnalyzer, get_file_churn
+from tech_debtor.analyzers.churn import get_file_churn
 from tech_debtor.analyzers.complexity import ComplexityAnalyzer
 from tech_debtor.analyzers.deadcode import DeadCodeAnalyzer
 from tech_debtor.analyzers.duplication import DuplicationAnalyzer

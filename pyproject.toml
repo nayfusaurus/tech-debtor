@@ -28,6 +28,9 @@ min-severity = "medium"
 exclude = ["tests/", "migrations/"]
 cost-per-line = 0.5
 
+[tool.ruff.lint.per-file-ignores]
+"tests/fixtures/*" = ["F401", "F811"]
+
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"

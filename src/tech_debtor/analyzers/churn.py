@@ -5,7 +5,7 @@ from pathlib import Path
 from tree_sitter import Tree
 
 from tech_debtor.config import Config
-from tech_debtor.models import DebtType, Finding, Severity
+from tech_debtor.models import Finding
 
 try:
     from git import Repo, InvalidGitRepositoryError

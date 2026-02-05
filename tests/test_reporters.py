@@ -1,5 +1,3 @@
-from io import StringIO
-
 from tech_debtor.reporters.terminal import render_terminal
 from tech_debtor.models import Finding, FileReport, ProjectReport, DebtType, Severity
 

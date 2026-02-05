@@ -1,4 +1,3 @@
-from pathlib import Path
 from tech_debtor.scanner import scan_python_files
 
 

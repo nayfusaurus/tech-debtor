@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
 
-from tech_debtor.models import ProjectReport, Finding, Severity, DebtType
+from tech_debtor.models import ProjectReport, Severity, DebtType
 from tech_debtor.scoring import prioritize_findings
 
 SEVERITY_COLORS = {

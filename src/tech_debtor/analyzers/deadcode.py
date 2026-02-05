@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from tree_sitter import Tree, Node
 
-from tech_debtor.analyzers.base import tree_to_functions, _find_nodes
 from tech_debtor.config import Config
 from tech_debtor.models import DebtType, Finding, Severity
 

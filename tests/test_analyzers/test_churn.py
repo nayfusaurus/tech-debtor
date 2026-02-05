@@ -1,8 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from tech_debtor.analyzers.churn import ChurnAnalyzer, get_file_churn
-from tech_debtor.config import Config
+from tech_debtor.analyzers.churn import get_file_churn
 
 
 def _init_git_repo(tmp_path: Path):

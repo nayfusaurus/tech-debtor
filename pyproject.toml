@@ -1,0 +1,40 @@
+[project]
+name = "tech-debtor"
+version = "0.1.0"
+description = "Python technical debt analyzer"
+readme = "README.md"
+authors = [
+    { name = "nayfusaurus", email = "35911760+nayfusaurus@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "tree-sitter>=0.23",
+    "tree-sitter-python>=0.23",
+    "rich>=13.0",
+    "click>=8.0",
+    "gitpython>=3.1",
+]
+
+[project.scripts]
+tech-debtor = "tech_debtor.cli:main"
+
+[tool.tech-debtor]
+max-complexity = 15
+max-cognitive-complexity = 10
+max-function-length = 50
+max-parameters = 5
+max-nesting-depth = 4
+min-severity = "medium"
+exclude = ["tests/", "migrations/"]
+cost-per-line = 0.5
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.0",
+]

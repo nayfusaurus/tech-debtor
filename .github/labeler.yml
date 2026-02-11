@@ -1,0 +1,52 @@
+# Auto-label PRs based on changed files
+
+# Analyzer changes
+analyzer:
+  - changed-files:
+    - any-glob-to-any-file: 'src/tech_debtor/analyzers/**'
+
+# Reporter changes
+reporter:
+  - changed-files:
+    - any-glob-to-any-file: 'src/tech_debtor/reporters/**'
+
+# CLI changes
+cli:
+  - changed-files:
+    - any-glob-to-any-file: 'src/tech_debtor/cli.py'
+
+# Test changes
+tests:
+  - changed-files:
+    - any-glob-to-any-file: 'tests/**'
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.md'
+      - 'docs/**'
+
+# Dependency changes
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'pyproject.toml'
+      - 'uv.lock'
+
+# CI/CD changes
+ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**'
+
+# Configuration changes
+config:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'pyproject.toml'
+      - '.github/**/*.yml'
+
+# Source code (any Python file)
+python:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.py'

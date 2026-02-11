@@ -1,0 +1,55 @@
+name: Dependency Check
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-dependencies:
+    name: Check for Outdated Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check for outdated packages
+        id: outdated
+        run: |
+          echo "## Outdated Packages" > outdated.txt
+          uv pip list --outdated >> outdated.txt || echo "All packages up to date" >> outdated.txt
+          cat outdated.txt
+        continue-on-error: true
+
+      - name: Verify dependency compatibility
+        run: uv pip check
+
+      - name: Upload outdated packages list
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: outdated-dependencies
+          path: outdated.txt
+
+      # Optional: Create issue if outdated packages found
+      # Uncomment this section if you want automatic issue creation
+      # - name: Create issue for outdated dependencies
+      #   if: steps.outdated.outcome == 'failure'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       const fs = require('fs');
+      #       const outdated = fs.readFileSync('outdated.txt', 'utf8');
+      #       github.rest.issues.create({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         title: 'Outdated dependencies detected',
+      #         body: `## Outdated Dependencies\n\n\`\`\`\n${outdated}\n\`\`\`\n\nPlease review and update.`,
+      #         labels: ['dependencies', 'automated']
+      #       });

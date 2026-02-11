@@ -1,0 +1,112 @@
+name: Self-Analysis
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  analyze:
+    name: Tech Debt Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for churn analysis
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run self-analysis
+        id: analysis
+        run: |
+          uv run tech-debtor analyze src/ --json > analysis.json
+          echo "score=$(jq -r '.debt_score' analysis.json)" >> $GITHUB_OUTPUT
+          echo "findings=$(jq -r '.total_findings' analysis.json)" >> $GITHUB_OUTPUT
+          echo "files=$(jq -r '.total_files' analysis.json)" >> $GITHUB_OUTPUT
+
+      - name: Upload analysis artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-debt-analysis-${{ github.sha }}
+          path: analysis.json
+          retention-days: 90
+
+      - name: Display analysis summary
+        run: |
+          echo "## 📊 Tech Debt Analysis Results"
+          echo "- **Debt Score:** ${{ steps.analysis.outputs.score }}/100"
+          echo "- **Total Findings:** ${{ steps.analysis.outputs.findings }}"
+          echo "- **Files Analyzed:** ${{ steps.analysis.outputs.files }}"
+          uv run tech-debtor analyze src/
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const analysis = JSON.parse(fs.readFileSync('analysis.json', 'utf8'));
+
+            const score = analysis.debt_score;
+            const rating = analysis.debt_rating;
+            const findings = analysis.total_findings;
+
+            // Get severity breakdown
+            const severities = {};
+            analysis.findings.forEach(f => {
+              severities[f.severity] = (severities[f.severity] || 0) + 1;
+            });
+
+            // Determine score emoji and color
+            const scoreEmoji = score <= 40 ? '✅' : score <= 60 ? '⚠️' : '❌';
+
+            // Get top 5 findings
+            const topFindings = analysis.findings.slice(0, 5).map(f =>
+              `- **[${f.severity.toUpperCase()}]** \`${f.file_path}:${f.line}\` - ${f.message}`
+            ).join('\n');
+
+            const body = `## 📊 Tech Debt Analysis
+
+            ${scoreEmoji} **Debt Score:** ${score}/100 (${rating})
+
+            ### Summary
+            - Total Findings: ${findings}
+            - Critical: ${severities.critical || 0}
+            - High: ${severities.high || 0}
+            - Medium: ${severities.medium || 0}
+            - Low: ${severities.low || 0}
+
+            ### Top Findings
+            ${topFindings}
+
+            <details>
+            <summary>View Full Report</summary>
+
+            Download the full analysis artifact from the workflow run to see all findings.
+
+            </details>
+
+            ---
+            *Analyzed by [tech-debtor](https://github.com/nayfusaurus/tech-debtor) 🔍*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if debt score is critical
+        if: steps.analysis.outputs.score > 80
+        run: |
+          echo "::error::Debt score (${{ steps.analysis.outputs.score }}/100) exceeds critical threshold (80)"
+          exit 1

@@ -27,4 +27,3 @@ jobs:
 
       - name: Run mypy
         run: uv run mypy src/
-        continue-on-error: true  # Don't fail yet, types not fully strict

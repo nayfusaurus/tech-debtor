@@ -10,8 +10,8 @@ from tech_debtor.models import Finding
 try:
     from git import Repo, InvalidGitRepositoryError
 except ImportError:
-    Repo = None
-    InvalidGitRepositoryError = Exception
+    Repo = None  # type: ignore[assignment,misc]
+    InvalidGitRepositoryError = Exception  # type: ignore[assignment,misc]
 
 
 def get_file_churn(project_path: Path, max_commits: int = 500) -> dict[str, int]:
@@ -26,10 +26,12 @@ def get_file_churn(project_path: Path, max_commits: int = 500) -> dict[str, int]
     try:
         for commit in repo.iter_commits(max_count=max_commits):
             for path in commit.stats.files:
-                if path.endswith(".py"):
-                    churn[path] = churn.get(path, 0) + 1
-    except Exception:
-        pass
+                path_str = str(path)
+                if path_str.endswith(".py"):
+                    churn[path_str] = churn.get(path_str, 0) + 1
+    except (AttributeError, ValueError, OSError):
+        # Git errors (invalid repo, corrupted history, etc.) - return empty churn
+        return {}
     return churn
 
 

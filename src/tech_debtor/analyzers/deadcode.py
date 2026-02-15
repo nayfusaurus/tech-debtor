@@ -13,17 +13,17 @@ def _get_imported_names(root: Node) -> list[tuple[str, Node]]:
             for child in node.named_children:
                 if child.type == "dotted_name":
                     first = child.named_children[0] if child.named_children else child
-                    names.append((first.text.decode(), node))
+                    names.append((first.text.decode() if first.text else "", node))
         elif node.type == "import_from_statement":
             for child in node.named_children:
                 if child.type == "dotted_name" and child != node.named_children[0]:
-                    names.append((child.text.decode(), node))
+                    names.append((child.text.decode() if child.text else "", node))
                 elif child.type == "aliased_import":
                     alias = child.child_by_field_name("alias")
                     name_node = child.child_by_field_name("name")
-                    if alias:
+                    if alias and alias.text:
                         names.append((alias.text.decode(), node))
-                    elif name_node:
+                    elif name_node and name_node.text:
                         names.append((name_node.text.decode(), node))
     return names
 
@@ -33,7 +33,7 @@ def _get_all_identifiers(node: Node) -> set[str]:
     if node.type == "import_statement" or node.type == "import_from_statement":
         return ids
     if node.type == "identifier":
-        ids.add(node.text.decode())
+        ids.add(node.text.decode() if node.text else "")
     for child in node.children:
         ids.update(_get_all_identifiers(child))
     return ids
@@ -45,7 +45,7 @@ def _get_top_level_functions(root: Node) -> list[Node]:
 
 def _func_name(node: Node) -> str:
     name_node = node.child_by_field_name("name")
-    return name_node.text.decode() if name_node else "<anonymous>"
+    return name_node.text.decode() if name_node and name_node.text else "<anonymous>"
 
 
 class DeadCodeAnalyzer:

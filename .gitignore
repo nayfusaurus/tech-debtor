@@ -1,10 +1,51 @@
+# Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-.venv/
-dist/
-build/
+*.pyo
 *.egg
+*.egg-info/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Build & distribution
+build/
+dist/
+sdist/
+
+# Tool caches
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+.tox/
+.coverage
+htmlcov/
+coverage.xml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Security - never commit these
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# Bandit reports
+bandit-report.json
+
+# Docs
+docs/

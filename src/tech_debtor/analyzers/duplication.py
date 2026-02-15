@@ -18,7 +18,7 @@ def _normalize_tree(node: Node) -> str:
 
 def _func_name(node: Node) -> str:
     name_node = node.child_by_field_name("name")
-    return name_node.text.decode() if name_node else "<anonymous>"
+    return name_node.text.decode() if name_node and name_node.text else "<anonymous>"
 
 
 class DuplicationAnalyzer:

@@ -11,12 +11,12 @@ GOD_CLASS_METHOD_THRESHOLD = 20
 
 def _func_name(node: Node) -> str:
     name_node = node.child_by_field_name("name")
-    return name_node.text.decode() if name_node else "<anonymous>"
+    return name_node.text.decode() if name_node and name_node.text else "<anonymous>"
 
 
 def _class_name(node: Node) -> str:
     name_node = node.child_by_field_name("name")
-    return name_node.text.decode() if name_node else "<anonymous>"
+    return name_node.text.decode() if name_node and name_node.text else "<anonymous>"
 
 
 def _function_length(func_node: Node) -> int:
@@ -43,7 +43,7 @@ def _param_count(func_node: Node) -> int:
         if child.type in ("identifier", "typed_parameter", "default_parameter",
                           "typed_default_parameter", "list_splat_pattern",
                           "dictionary_splat_pattern"):
-            text = child.text.decode()
+            text = child.text.decode() if child.text else ""
             if text not in ("self", "cls"):
                 count += 1
     return count

@@ -57,7 +57,7 @@ def _cognitive_complexity(node: Node, nesting: int = 0) -> int:
 
 def _func_name(func_node: Node) -> str:
     name_node = func_node.child_by_field_name("name")
-    return name_node.text.decode() if name_node else "<anonymous>"
+    return name_node.text.decode() if name_node and name_node.text else "<anonymous>"
 
 
 def _severity_for_excess(excess: int, threshold: int) -> Severity:

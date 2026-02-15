@@ -24,6 +24,22 @@ class Config:
     exclude: list[str] = field(default_factory=list)
     cost_per_line: float = 0.5
 
+    # Exception handling configuration
+    allow_bare_except: bool = False
+    allow_broad_except: bool = False
+    check_resource_leaks: bool = True
+    check_divide_by_zero: bool = True
+    check_float_comparison: bool = True
+    check_object_comparison: bool = True
+    check_uncaught_exceptions: bool = False  # Opt-in (noisy)
+    check_unchecked_returns: bool = False    # Opt-in (very noisy)
+
+    # Security configuration
+    check_hardcoded_credentials: bool = True
+    check_unsafe_deserialization: bool = True
+    check_command_injection: bool = True
+    check_sql_injection: bool = True
+
 
 def load_config(project_path: Path) -> Config:
     pyproject = project_path / "pyproject.toml"
@@ -49,6 +65,18 @@ def load_config(project_path: Path) -> Config:
         "min-severity": "min_severity",
         "exclude": "exclude",
         "cost-per-line": "cost_per_line",
+        "allow-bare-except": "allow_bare_except",
+        "allow-broad-except": "allow_broad_except",
+        "check-resource-leaks": "check_resource_leaks",
+        "check-divide-by-zero": "check_divide_by_zero",
+        "check-float-comparison": "check_float_comparison",
+        "check-object-comparison": "check_object_comparison",
+        "check-uncaught-exceptions": "check_uncaught_exceptions",
+        "check-unchecked-returns": "check_unchecked_returns",
+        "check-hardcoded-credentials": "check_hardcoded_credentials",
+        "check-unsafe-deserialization": "check_unsafe_deserialization",
+        "check-command-injection": "check_command_injection",
+        "check-sql-injection": "check_sql_injection",
     }
 
     kwargs = {}

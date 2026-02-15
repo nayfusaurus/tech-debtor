@@ -5,11 +5,15 @@ from pathlib import Path
 import click
 
 from tech_debtor import __version__
-from tech_debtor.analyzers.base import parse_python
+from typing import Callable
+
+from tech_debtor.analyzers.base import Analyzer, parse_python
 from tech_debtor.analyzers.churn import get_file_churn
 from tech_debtor.analyzers.complexity import ComplexityAnalyzer
 from tech_debtor.analyzers.deadcode import DeadCodeAnalyzer
 from tech_debtor.analyzers.duplication import DuplicationAnalyzer
+from tech_debtor.analyzers.exceptions import ExceptionAnalyzer
+from tech_debtor.analyzers.security import SecurityAnalyzer
 from tech_debtor.analyzers.smells import SmellAnalyzer
 from tech_debtor.config import Config, load_config
 from tech_debtor.models import FileReport, ProjectReport
@@ -17,11 +21,13 @@ from tech_debtor.reporters.json_reporter import render_json
 from tech_debtor.reporters.terminal import render_terminal
 from tech_debtor.scanner import scan_python_files
 
-ALL_ANALYZERS = {
+ALL_ANALYZERS: dict[str, Callable[[], Analyzer]] = {
     "complexity": ComplexityAnalyzer,
     "smells": SmellAnalyzer,
     "duplication": DuplicationAnalyzer,
     "deadcode": DeadCodeAnalyzer,
+    "exceptions": ExceptionAnalyzer,
+    "security": SecurityAnalyzer,
 }
 
 
@@ -30,7 +36,7 @@ def _run_analysis(
     config: Config,
     checks: list[str] | None = None,
 ) -> tuple[ProjectReport, dict[str, int]]:
-    analyzers = []
+    analyzers: list[Analyzer] = []
     selected = checks or list(ALL_ANALYZERS.keys())
     for name in selected:
         cls = ALL_ANALYZERS.get(name)
@@ -44,7 +50,8 @@ def _run_analysis(
         source = file_path.read_text(encoding="utf-8", errors="replace")
         try:
             tree = parse_python(source)
-        except Exception:
+        except (SyntaxError, UnicodeDecodeError, OSError):
+            # Skip files with syntax errors or encoding issues
             continue
 
         findings = []
@@ -71,7 +78,7 @@ def main():
 
 @main.command()
 @click.argument("path", type=click.Path(exists=True))
-@click.option("--check", default=None, help="Comma-separated checks: complexity,smells,duplication,deadcode")
+@click.option("--check", default=None, help="Comma-separated checks: complexity,smells,duplication,deadcode,exceptions,security")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.option("--min-severity", default=None, type=click.Choice(["low", "medium", "high", "critical"]))
 @click.option("--verbose", is_flag=True, help="Show detailed output")

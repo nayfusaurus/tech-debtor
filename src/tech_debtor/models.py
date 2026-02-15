@@ -17,6 +17,8 @@ class DebtType(StrEnum):
     DUPLICATION = "duplication"
     DEAD_CODE = "dead_code"
     CHURN = "churn"
+    EXCEPTION = "exception"
+    SECURITY = "security"
 
 
 @dataclass(frozen=True)

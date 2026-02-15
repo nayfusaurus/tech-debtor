@@ -18,6 +18,7 @@ DEBT_TYPE_LABELS = {
     DebtType.DUPLICATION: "DUPLICATION",
     DebtType.DEAD_CODE: "DEAD CODE",
     DebtType.CHURN: "CHURN",
+    DebtType.SECURITY: "SECURITY",
 }
 
 RATING_COLORS = {
@@ -77,7 +78,7 @@ def render_terminal(
 
     # Hotspots (top 3 churned files with findings)
     if churn:
-        file_churn = {}
+        file_churn: dict[str, int] = {}
         for f in findings:
             c = churn.get(f.file_path, 0)
             if c > 0:

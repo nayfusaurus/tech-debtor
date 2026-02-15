@@ -28,6 +28,8 @@ uv run mypy src/
 # Run the tool
 uv run tech-debtor analyze src/
 uv run tech-debtor analyze src/ --json
+uv run tech-debtor analyze src/ --check exceptions  # Run only exception checks
+uv run tech-debtor analyze src/ --check security    # Run only security checks
 uv run tech-debtor score src/ --fail-above 60
 ```
 
@@ -46,6 +48,8 @@ src/tech_debtor/
 │   ├── smells.py       # Long functions, deep nesting, too-many-params, god classes
 │   ├── duplication.py  # AST structural fingerprint comparison
 │   ├── deadcode.py     # Unused imports + uncalled top-level functions
+│   ├── exceptions.py   # Exception handling anti-patterns (CWE-703, CWE-772, CWE-1077, CWE-595, CWE-369, etc.)
+│   ├── security.py     # Security anti-patterns (CWE-798, CWE-502, CWE-78, CWE-89, CWE-95)
 │   └── churn.py        # Git commit frequency per file
 └── reporters/
     ├── terminal.py     # Rich terminal output
@@ -58,14 +62,18 @@ src/tech_debtor/
 
 - All source uses `from __future__ import annotations`
 - Analyzers implement the `Analyzer` protocol from `analyzers/base.py`
-- Severity is an IntEnum (LOW=1..CRITICAL=4), DebtType is a StrEnum
+- Severity is an IntEnum (LOW=1..CRITICAL=4), DebtType is a StrEnum (complexity, smell, duplication, dead_code, churn, exception, security)
 - Finding is a frozen dataclass; FileReport/ProjectReport are mutable
 - Dead code analyzer only checks within a single file (cross-file analysis is out of scope for v1)
+- Exception analyzer detects 7 CWE patterns: bare except, resource leaks, float comparison, object comparison, divide by zero, uncaught exceptions (opt-in), unchecked returns (opt-in)
+- Security analyzer detects 4+1 CWE patterns: hard-coded credentials (CWE-798), unsafe deserialization (CWE-502), command injection (CWE-78), SQL injection (CWE-89), eval/exec (CWE-95)
 - Config keys in pyproject.toml use kebab-case, mapped to snake_case in Python
 
 ## Testing
 
 - Tests live in `tests/` mirroring the source structure
 - `tests/fixtures/messy_code.py` is an intentionally messy file for integration tests
-- Ruff ignores `F401`/`F811` in `tests/fixtures/*` (unused imports are intentional test data)
-- 41 tests total, all should pass
+- `tests/fixtures/exception_patterns.py` contains intentional exception anti-patterns for testing
+- `tests/fixtures/security_patterns.py` contains intentional security anti-patterns for testing
+- Ruff ignores `F401`/`F811`/`F541`/`E722`/`F632` + S-codes in `tests/fixtures/*` (intentional bad code for testing)
+- 121 tests total (41 original + 38 exception + 42 security), all should pass

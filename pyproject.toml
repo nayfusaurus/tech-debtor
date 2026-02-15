@@ -29,7 +29,7 @@ exclude = ["tests/", "migrations/"]
 cost-per-line = 0.5
 
 [tool.ruff.lint.per-file-ignores]
-"tests/fixtures/*" = ["F401", "F811"]
+"tests/fixtures/*" = ["F401", "F811", "F541", "E722", "F632", "S105", "S108", "S301", "S307", "S602", "S603", "S605", "S608"]
 
 [tool.mypy]
 python_version = "3.12"

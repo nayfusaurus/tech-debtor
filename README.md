@@ -126,4 +126,4 @@ uv run tech-debtor analyze src/
 
 ## License
 
-MIT
+APACHE 2.0

@@ -49,3 +49,5 @@ bandit-report.json
 
 # Docs
 docs/
+CLAUDE.md
+OPUS_TODO.md

@@ -3,6 +3,7 @@ name = "tech-debtor"
 version = "0.1.0"
 description = "Python technical debt analyzer"
 readme = "README.md"
+license = "Apache-2.0"
 authors = [
     { name = "nayfusaurus", email = "35911760+nayfusaurus@users.noreply.github.com" }
 ]

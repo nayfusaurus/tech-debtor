@@ -6,13 +6,21 @@ from tech_debtor.analyzers.churn import get_file_churn
 
 def _init_git_repo(tmp_path: Path):
     subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=tmp_path, capture_output=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@test.com"],
+        cwd=tmp_path,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test"], cwd=tmp_path, capture_output=True
+    )
     f = tmp_path / "a.py"
     for i in range(5):
         f.write_text(f"x = {i}\n")
         subprocess.run(["git", "add", "a.py"], cwd=tmp_path, capture_output=True)
-        subprocess.run(["git", "commit", "-m", f"commit {i}"], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", f"commit {i}"], cwd=tmp_path, capture_output=True
+        )
 
 
 def test_get_file_churn(tmp_path):

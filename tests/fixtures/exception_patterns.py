@@ -8,6 +8,7 @@ import math
 # CWE-703: Bare except - SHOULD FLAG
 # ============================================================================
 
+
 def bare_except_bad():
     """Bare except clause catches everything including SystemExit."""
     try:
@@ -27,6 +28,7 @@ def bare_except_with_logging_still_bad():
 # ============================================================================
 # CWE-703: Bare except - SHOULD NOT FLAG
 # ============================================================================
+
 
 def bare_except_good():
     """Specific exception handling is safe."""
@@ -49,6 +51,7 @@ def bare_except_multiple_types():
 # CWE-703: Broad exception - SHOULD FLAG
 # ============================================================================
 
+
 def broad_except_exception():
     """Catching Exception is too broad."""
     try:
@@ -69,6 +72,7 @@ def broad_except_base_exception():
 # CWE-703: Swallowed exception - SHOULD FLAG
 # ============================================================================
 
+
 def swallowed_exception_pass():
     """Exception silently swallowed."""
     try:
@@ -81,6 +85,7 @@ def swallowed_exception_pass():
 # CWE-772: Resource leak - SHOULD FLAG
 # ============================================================================
 
+
 def resource_leak_open():
     """File opened without context manager."""
     f = open("file.txt")  # Should flag: CWE-772
@@ -91,6 +96,7 @@ def resource_leak_open():
 def resource_leak_socket():
     """Socket created without context manager."""
     import socket
+
     s = socket.socket()  # Should flag: CWE-772
     s.connect(("localhost", 8080))
     return s
@@ -99,6 +105,7 @@ def resource_leak_socket():
 def resource_leak_sqlite():
     """Database connection without context manager."""
     import sqlite3
+
     conn = sqlite3.connect("db.sqlite")  # Should flag: CWE-772
     return conn.cursor()
 
@@ -106,6 +113,7 @@ def resource_leak_sqlite():
 # ============================================================================
 # CWE-772: Resource leak - SHOULD NOT FLAG
 # ============================================================================
+
 
 def resource_no_leak_with_statement():
     """Using context manager is safe."""
@@ -123,6 +131,7 @@ def resource_no_leak_nested_with():
 # ============================================================================
 # CWE-1077: Float comparison - SHOULD FLAG
 # ============================================================================
+
 
 def float_compare_equality():
     """Comparing floats with == is unreliable."""
@@ -148,6 +157,7 @@ def float_compare_literal():
 # CWE-1077: Float comparison - SHOULD NOT FLAG
 # ============================================================================
 
+
 def float_compare_good():
     """Using math.isclose is the correct way."""
     if math.isclose(0.1 + 0.2, 0.3):  # Should NOT flag
@@ -163,6 +173,7 @@ def integer_compare_ok():
 # ============================================================================
 # CWE-595: Object reference comparison - SHOULD FLAG
 # ============================================================================
+
 
 def object_compare_string():
     """Comparing strings with 'is' is wrong."""
@@ -188,6 +199,7 @@ def object_compare_is_not():
 # ============================================================================
 # CWE-595: Object reference comparison - SHOULD NOT FLAG
 # ============================================================================
+
 
 def object_compare_none():
     """Comparing with None using 'is' is correct."""
@@ -215,6 +227,7 @@ def object_compare_equality():
 # ============================================================================
 # CWE-369: Divide by zero - SHOULD FLAG
 # ============================================================================
+
 
 def divide_by_variable():
     """Division by variable without check."""
@@ -247,6 +260,7 @@ def divide_by_zero_literal():
 # CWE-369: Divide by zero - SHOULD NOT FLAG
 # ============================================================================
 
+
 def divide_with_guard():
     """Division with proper guard condition."""
     x = get_number()
@@ -274,6 +288,7 @@ def divide_with_positive_check():
 # ============================================================================
 # Helper functions (not part of tests)
 # ============================================================================
+
 
 def risky_operation():
     """Dummy function for test cases."""

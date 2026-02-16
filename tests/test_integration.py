@@ -24,6 +24,7 @@ def test_json_output_on_fixture():
     result = runner.invoke(main, ["analyze", str(FIXTURES), "--json"])
     assert result.exit_code == 0
     import json
+
     data = json.loads(result.output)
     assert data["total_findings"] > 0
     debt_types = {f["debt_type"] for f in data["findings"]}

@@ -39,5 +39,7 @@ class ChurnAnalyzer:
     def __init__(self, churn_data: dict[str, int] | None = None):
         self._churn_data = churn_data or {}
 
-    def analyze(self, file_path: str, source: str, tree: Tree, config: Config) -> list[Finding]:
+    def analyze(
+        self, file_path: str, source: str, tree: Tree, config: Config
+    ) -> list[Finding]:
         return []

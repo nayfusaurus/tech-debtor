@@ -3,7 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterator
 
-ALWAYS_EXCLUDE = {".venv", "venv", ".git", "__pycache__", ".mypy_cache", ".ruff_cache", "node_modules", ".tox", ".eggs", "*.egg-info"}
+ALWAYS_EXCLUDE = {
+    ".venv",
+    "venv",
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+    "node_modules",
+    ".tox",
+    ".eggs",
+    "*.egg-info",
+}
 
 
 def _is_excluded(path: Path, root: Path, exclude: list[str]) -> bool:

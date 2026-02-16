@@ -32,7 +32,7 @@ class Config:
     check_float_comparison: bool = True
     check_object_comparison: bool = True
     check_uncaught_exceptions: bool = False  # Opt-in (noisy)
-    check_unchecked_returns: bool = False    # Opt-in (very noisy)
+    check_unchecked_returns: bool = False  # Opt-in (very noisy)
 
     # Security configuration
     check_hardcoded_credentials: bool = True

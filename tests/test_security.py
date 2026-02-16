@@ -1,4 +1,5 @@
 """Tests for security analyzer."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,12 +26,17 @@ def config():
 # CWE-798: Hard-Coded Credentials Tests
 # ============================================================================
 
+
 def test_hardcoded_password_detection(analyzer, config):
     code = 'password = "super_secret_123"'
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "password" in f.message.lower()]
+    creds = [
+        f
+        for f in findings
+        if "CWE-798" in f.message and "password" in f.message.lower()
+    ]
     assert len(creds) >= 1
     assert creds[0].severity == Severity.CRITICAL
     assert creds[0].debt_type == DebtType.SECURITY
@@ -51,7 +57,9 @@ def test_hardcoded_token_detection(analyzer, config):
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "auth_token" in f.message]
+    creds = [
+        f for f in findings if "CWE-798" in f.message and "auth_token" in f.message
+    ]
     assert len(creds) >= 1
 
 
@@ -60,7 +68,11 @@ def test_env_password_no_flag(analyzer, config):
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "Hard-coded credential" in f.message]
+    creds = [
+        f
+        for f in findings
+        if "CWE-798" in f.message and "Hard-coded credential" in f.message
+    ]
     assert len(creds) == 0
 
 
@@ -69,7 +81,11 @@ def test_config_password_no_flag(analyzer, config):
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "Hard-coded credential" in f.message]
+    creds = [
+        f
+        for f in findings
+        if "CWE-798" in f.message and "Hard-coded credential" in f.message
+    ]
     assert len(creds) == 0
 
 
@@ -78,7 +94,11 @@ def test_empty_string_no_flag(analyzer, config):
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "Hard-coded credential" in f.message]
+    creds = [
+        f
+        for f in findings
+        if "CWE-798" in f.message and "Hard-coded credential" in f.message
+    ]
     assert len(creds) == 0
 
 
@@ -87,7 +107,11 @@ def test_variable_assignment_no_flag(analyzer, config):
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "Hard-coded credential" in f.message]
+    creds = [
+        f
+        for f in findings
+        if "CWE-798" in f.message and "Hard-coded credential" in f.message
+    ]
     assert len(creds) == 0
 
 
@@ -96,7 +120,11 @@ def test_non_credential_variable_no_flag(analyzer, config):
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
-    creds = [f for f in findings if "CWE-798" in f.message and "Hard-coded credential" in f.message]
+    creds = [
+        f
+        for f in findings
+        if "CWE-798" in f.message and "Hard-coded credential" in f.message
+    ]
     assert len(creds) == 0
 
 
@@ -133,8 +161,9 @@ def test_hardcoded_credentials_disabled(analyzer):
 # CWE-502: Unsafe Deserialization Tests
 # ============================================================================
 
+
 def test_pickle_loads_detection(analyzer, config):
-    code = 'data = pickle.loads(user_input)'
+    code = "data = pickle.loads(user_input)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -145,7 +174,7 @@ def test_pickle_loads_detection(analyzer, config):
 
 
 def test_pickle_load_detection(analyzer, config):
-    code = 'data = pickle.load(f)'
+    code = "data = pickle.load(f)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -154,7 +183,7 @@ def test_pickle_load_detection(analyzer, config):
 
 
 def test_yaml_load_no_safeloader_detection(analyzer, config):
-    code = 'data = yaml.load(user_input)'
+    code = "data = yaml.load(user_input)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -163,7 +192,7 @@ def test_yaml_load_no_safeloader_detection(analyzer, config):
 
 
 def test_yaml_load_with_safeloader_no_flag(analyzer, config):
-    code = 'data = yaml.load(user_input, Loader=yaml.SafeLoader)'
+    code = "data = yaml.load(user_input, Loader=yaml.SafeLoader)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -172,7 +201,7 @@ def test_yaml_load_with_safeloader_no_flag(analyzer, config):
 
 
 def test_yaml_safe_load_no_flag(analyzer, config):
-    code = 'data = yaml.safe_load(user_input)'
+    code = "data = yaml.safe_load(user_input)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -181,7 +210,7 @@ def test_yaml_safe_load_no_flag(analyzer, config):
 
 
 def test_json_loads_no_flag(analyzer, config):
-    code = 'data = json.loads(user_input)'
+    code = "data = json.loads(user_input)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -190,7 +219,7 @@ def test_json_loads_no_flag(analyzer, config):
 
 
 def test_yaml_load_csafeloader_no_flag(analyzer, config):
-    code = 'data = yaml.load(user_input, Loader=yaml.CSafeLoader)'
+    code = "data = yaml.load(user_input, Loader=yaml.CSafeLoader)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -200,7 +229,7 @@ def test_yaml_load_csafeloader_no_flag(analyzer, config):
 
 def test_unsafe_deserialization_disabled(analyzer):
     config = Config(check_unsafe_deserialization=False)
-    code = 'data = pickle.loads(user_input)'
+    code = "data = pickle.loads(user_input)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -211,6 +240,7 @@ def test_unsafe_deserialization_disabled(analyzer):
 # ============================================================================
 # CWE-78/95: Command Injection Tests
 # ============================================================================
+
 
 def test_os_system_detection(analyzer, config):
     code = 'os.system("echo hello")'
@@ -252,7 +282,7 @@ def test_subprocess_call_shell_true(analyzer, config):
 
 
 def test_eval_detection(analyzer, config):
-    code = 'result = eval(user_input)'
+    code = "result = eval(user_input)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -262,7 +292,7 @@ def test_eval_detection(analyzer, config):
 
 
 def test_exec_detection(analyzer, config):
-    code = 'exec(user_code)'
+    code = "exec(user_code)"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -311,6 +341,7 @@ def test_command_injection_disabled(analyzer):
 # ============================================================================
 # CWE-89: SQL Injection Tests
 # ============================================================================
+
 
 def test_sql_concat_detection(analyzer, config):
     code = 'query = "SELECT * FROM users WHERE id=" + user_id'
@@ -400,8 +431,9 @@ def test_sql_injection_disabled(analyzer):
 # CWE-477: Deprecated/Removed Stdlib Import Tests
 # ============================================================================
 
+
 def test_deprecated_import_imp(analyzer, config):
-    code = 'import imp'
+    code = "import imp"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -412,7 +444,7 @@ def test_deprecated_import_imp(analyzer, config):
 
 
 def test_deprecated_import_distutils(analyzer, config):
-    code = 'import distutils'
+    code = "import distutils"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -422,7 +454,7 @@ def test_deprecated_import_distutils(analyzer, config):
 
 
 def test_deprecated_import_from_cgi(analyzer, config):
-    code = 'from cgi import parse_header'
+    code = "from cgi import parse_header"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -432,7 +464,7 @@ def test_deprecated_import_from_cgi(analyzer, config):
 
 
 def test_deprecated_import_optparse(analyzer, config):
-    code = 'import optparse'
+    code = "import optparse"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -442,7 +474,7 @@ def test_deprecated_import_optparse(analyzer, config):
 
 
 def test_deprecated_import_dotted(analyzer, config):
-    code = 'import distutils.core'
+    code = "import distutils.core"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -452,7 +484,7 @@ def test_deprecated_import_dotted(analyzer, config):
 
 
 def test_current_import_no_flag(analyzer, config):
-    code = 'import importlib'
+    code = "import importlib"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -461,7 +493,7 @@ def test_current_import_no_flag(analyzer, config):
 
 
 def test_current_from_import_no_flag(analyzer, config):
-    code = 'from pathlib import Path'
+    code = "from pathlib import Path"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -471,7 +503,7 @@ def test_current_from_import_no_flag(analyzer, config):
 
 def test_deprecated_imports_disabled(analyzer):
     config = Config(check_deprecated_imports=False)
-    code = 'import imp'
+    code = "import imp"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -480,7 +512,7 @@ def test_deprecated_imports_disabled(analyzer):
 
 
 def test_deprecated_import_has_suggestion(analyzer, config):
-    code = 'import imp'
+    code = "import imp"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -490,7 +522,7 @@ def test_deprecated_import_has_suggestion(analyzer, config):
 
 
 def test_removed_module_no_replacement(analyzer, config):
-    code = 'import nntplib'
+    code = "import nntplib"
     tree = parse_python(code)
     findings = analyzer.analyze("test.py", code, tree, config)
 
@@ -503,6 +535,7 @@ def test_removed_module_no_replacement(analyzer, config):
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 def test_fixture_file_analysis(analyzer, config):
     fixture_path = Path(__file__).parent / "fixtures" / "security_patterns.py"
@@ -552,4 +585,9 @@ def test_all_findings_have_valid_severity(analyzer, config):
     findings = analyzer.analyze(str(fixture_path), source, tree, config)
 
     for finding in findings:
-        assert finding.severity in (Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL)
+        assert finding.severity in (
+            Severity.LOW,
+            Severity.MEDIUM,
+            Severity.HIGH,
+            Severity.CRITICAL,
+        )

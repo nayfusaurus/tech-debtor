@@ -1,4 +1,5 @@
 """Tests for exception handling analyzer."""
+
 from __future__ import annotations
 
 import pytest
@@ -23,6 +24,7 @@ def config():
 # ============================================================================
 # CWE-703: Bare Except Tests
 # ============================================================================
+
 
 def test_bare_except_detection(analyzer, config):
     """Bare except clause should be flagged."""
@@ -92,6 +94,7 @@ except (ValueError, TypeError):
 # CWE-703: Broad Exception Tests
 # ============================================================================
 
+
 def test_broad_exception_detection(analyzer, config):
     """Catching Exception should be flagged as too broad."""
     code = """
@@ -145,6 +148,7 @@ except Exception:
 # CWE-703: Swallowed Exception Tests
 # ============================================================================
 
+
 def test_swallowed_exception_detection(analyzer, config):
     """Exception with only pass statement should be flagged."""
     code = """
@@ -180,6 +184,7 @@ except ValueError:
 # ============================================================================
 # CWE-772: Resource Leak Tests
 # ============================================================================
+
 
 def test_resource_leak_open(analyzer, config):
     """open() without context manager should be flagged."""
@@ -242,6 +247,7 @@ data = f.read()
 # CWE-1077: Float Comparison Tests
 # ============================================================================
 
+
 def test_float_comparison_equality(analyzer, config):
     """Comparing floats with == should be flagged."""
     code = """
@@ -299,6 +305,7 @@ if 0.1 + 0.2 == 0.3:
 # ============================================================================
 # CWE-595: Object Reference Comparison Tests
 # ============================================================================
+
 
 def test_object_comparison_is(analyzer, config):
     """Comparing non-singletons with 'is' should be flagged."""
@@ -385,6 +392,7 @@ if name is "admin":
 # ============================================================================
 # CWE-369: Divide by Zero Tests
 # ============================================================================
+
 
 def test_divide_by_variable(analyzer, config):
     """Division by variable without guard should be flagged."""
@@ -485,6 +493,7 @@ def calc(x, y):
 # CWE-248: Uncaught Exception Tests (opt-in)
 # ============================================================================
 
+
 def test_uncaught_exception_disabled_by_default(analyzer, config):
     """Uncaught exceptions should not be checked by default."""
     code = """
@@ -516,6 +525,7 @@ def func():
 # ============================================================================
 # CWE-252: Unchecked Return Value Tests (opt-in)
 # ============================================================================
+
 
 def test_unchecked_return_disabled_by_default(analyzer, config):
     """Unchecked returns should not be checked by default."""
@@ -560,6 +570,7 @@ list.append(1)
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 def test_fixture_file_analysis(analyzer, config):
     """Test analysis on the comprehensive fixture file."""

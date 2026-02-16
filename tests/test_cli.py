@@ -9,9 +9,7 @@ def _make_project(tmp_path: Path):
     src.mkdir()
     (src / "simple.py").write_text("def add(x, y):\n    return x + y\n")
     (src / "complex.py").write_text(
-        "def f(data):\n"
-        + "    if data:\n" * 20
-        + "        pass\n"
+        "def f(data):\n" + "    if data:\n" * 20 + "        pass\n"
     )
 
 

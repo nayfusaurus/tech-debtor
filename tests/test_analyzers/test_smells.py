@@ -34,7 +34,9 @@ def clean(x, y):
 def test_long_function():
     analyzer = SmellAnalyzer()
     tree = parse_python(LONG_FUNCTION)
-    findings = analyzer.analyze("t.py", LONG_FUNCTION, tree, Config(max_function_length=50))
+    findings = analyzer.analyze(
+        "t.py", LONG_FUNCTION, tree, Config(max_function_length=50)
+    )
     assert len(findings) == 1
     assert findings[0].debt_type == DebtType.SMELL
     assert "Long function" in findings[0].message

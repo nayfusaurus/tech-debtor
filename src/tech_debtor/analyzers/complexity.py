@@ -7,14 +7,22 @@ from tech_debtor.config import Config
 from tech_debtor.models import DebtType, Finding, Severity
 
 CYCLOMATIC_BRANCH_TYPES = {
-    "if_statement", "elif_clause", "for_statement", "while_statement",
-    "except_clause", "with_statement", "assert_statement",
+    "if_statement",
+    "elif_clause",
+    "for_statement",
+    "while_statement",
+    "except_clause",
+    "with_statement",
+    "assert_statement",
 }
 
 BOOLEAN_OPERATORS = {"and", "or"}
 
 COGNITIVE_INCREMENT_TYPES = {
-    "if_statement", "for_statement", "while_statement", "except_clause",
+    "if_statement",
+    "for_statement",
+    "while_statement",
+    "except_clause",
 }
 
 COGNITIVE_NO_NESTING_TYPES = {"elif_clause", "else_clause"}
@@ -76,7 +84,9 @@ def _remediation_minutes(excess: int) -> int:
 
 
 class ComplexityAnalyzer:
-    def analyze(self, file_path: str, source: str, tree: Tree, config: Config) -> list[Finding]:
+    def analyze(
+        self, file_path: str, source: str, tree: Tree, config: Config
+    ) -> list[Finding]:
         findings: list[Finding] = []
         functions = tree_to_functions(tree.root_node)
 
@@ -92,25 +102,37 @@ class ComplexityAnalyzer:
 
             if cyclomatic > config.max_complexity:
                 excess = cyclomatic - config.max_complexity
-                findings.append(Finding(
-                    file_path=file_path, line=func.start_point[0] + 1,
-                    end_line=func.end_point[0] + 1, debt_type=DebtType.COMPLEXITY,
-                    severity=_severity_for_excess(excess, config.max_complexity),
-                    message=f"Cyclomatic complexity: {cyclomatic} (threshold: {config.max_complexity})",
-                    suggestion="Break into smaller functions, extract conditional logic",
-                    remediation_minutes=_remediation_minutes(excess), symbol=name,
-                ))
+                findings.append(
+                    Finding(
+                        file_path=file_path,
+                        line=func.start_point[0] + 1,
+                        end_line=func.end_point[0] + 1,
+                        debt_type=DebtType.COMPLEXITY,
+                        severity=_severity_for_excess(excess, config.max_complexity),
+                        message=f"Cyclomatic complexity: {cyclomatic} (threshold: {config.max_complexity})",
+                        suggestion="Break into smaller functions, extract conditional logic",
+                        remediation_minutes=_remediation_minutes(excess),
+                        symbol=name,
+                    )
+                )
 
             cognitive = _cognitive_complexity(body)
             if cognitive > config.max_cognitive_complexity:
                 excess = cognitive - config.max_cognitive_complexity
-                findings.append(Finding(
-                    file_path=file_path, line=func.start_point[0] + 1,
-                    end_line=func.end_point[0] + 1, debt_type=DebtType.COMPLEXITY,
-                    severity=_severity_for_excess(excess, config.max_cognitive_complexity),
-                    message=f"Cognitive complexity: {cognitive} (threshold: {config.max_cognitive_complexity})",
-                    suggestion="Reduce nesting depth, extract helper functions, simplify conditionals",
-                    remediation_minutes=_remediation_minutes(excess), symbol=name,
-                ))
+                findings.append(
+                    Finding(
+                        file_path=file_path,
+                        line=func.start_point[0] + 1,
+                        end_line=func.end_point[0] + 1,
+                        debt_type=DebtType.COMPLEXITY,
+                        severity=_severity_for_excess(
+                            excess, config.max_cognitive_complexity
+                        ),
+                        message=f"Cognitive complexity: {cognitive} (threshold: {config.max_cognitive_complexity})",
+                        suggestion="Reduce nesting depth, extract helper functions, simplify conditionals",
+                        remediation_minutes=_remediation_minutes(excess),
+                        symbol=name,
+                    )
+                )
 
         return findings

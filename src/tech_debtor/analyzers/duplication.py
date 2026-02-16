@@ -22,7 +22,9 @@ def _func_name(node: Node) -> str:
 
 
 class DuplicationAnalyzer:
-    def analyze(self, file_path: str, source: str, tree: Tree, config: Config) -> list[Finding]:
+    def analyze(
+        self, file_path: str, source: str, tree: Tree, config: Config
+    ) -> list[Finding]:
         findings: list[Finding] = []
         functions = tree_to_functions(tree.root_node)
 
@@ -54,13 +56,18 @@ class DuplicationAnalyzer:
             locations = ", ".join(
                 f"{_func_name(f)} (line {f.start_point[0] + 1})" for f in funcs
             )
-            findings.append(Finding(
-                file_path=file_path, line=first.start_point[0] + 1,
-                end_line=first.end_point[0] + 1, debt_type=DebtType.DUPLICATION,
-                severity=Severity.HIGH if length > 15 else Severity.MEDIUM,
-                message=f"Duplicate code blocks ({length} lines): {locations}",
-                suggestion="Extract shared logic into a common function",
-                remediation_minutes=max(10, length * 2), symbol=_func_name(first),
-            ))
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line=first.start_point[0] + 1,
+                    end_line=first.end_point[0] + 1,
+                    debt_type=DebtType.DUPLICATION,
+                    severity=Severity.HIGH if length > 15 else Severity.MEDIUM,
+                    message=f"Duplicate code blocks ({length} lines): {locations}",
+                    suggestion="Extract shared logic into a common function",
+                    remediation_minutes=max(10, length * 2),
+                    symbol=_func_name(first),
+                )
+            )
 
         return findings

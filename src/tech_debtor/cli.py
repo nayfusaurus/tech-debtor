@@ -59,11 +59,13 @@ def _run_analysis(
             findings.extend(analyzer.analyze(str(file_path), source, tree, config))
 
         loc = source.count("\n")
-        file_reports.append(FileReport(
-            file_path=str(file_path),
-            lines_of_code=loc,
-            findings=findings,
-        ))
+        file_reports.append(
+            FileReport(
+                file_path=str(file_path),
+                lines_of_code=loc,
+                findings=findings,
+            )
+        )
 
     report = ProjectReport(
         file_reports=file_reports,
@@ -85,11 +87,21 @@ def main():
 
 @main.command()
 @click.argument("path", type=click.Path(exists=True))
-@click.option("--check", default=None, help="Comma-separated checks: complexity,smells,duplication,deadcode,exceptions,security")
+@click.option(
+    "--check",
+    default=None,
+    help="Comma-separated checks: complexity,smells,duplication,deadcode,exceptions,security",
+)
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
-@click.option("--min-severity", default=None, type=click.Choice(["low", "medium", "high", "critical"]))
+@click.option(
+    "--min-severity",
+    default=None,
+    type=click.Choice(["low", "medium", "high", "critical"]),
+)
 @click.option("--verbose", is_flag=True, help="Show detailed output")
-def analyze(path: str, check: str | None, as_json: bool, min_severity: str | None, verbose: bool):
+def analyze(
+    path: str, check: str | None, as_json: bool, min_severity: str | None, verbose: bool
+):
     """Analyze Python files for technical debt."""
     target = Path(path)
     config = load_config(target if target.is_dir() else target.parent)
@@ -99,6 +111,7 @@ def analyze(path: str, check: str | None, as_json: bool, min_severity: str | Non
 
     if min_severity:
         from tech_debtor.models import Severity
+
         threshold = Severity[min_severity.upper()]
         for fr in report.file_reports:
             fr.findings = [f for f in fr.findings if f.severity >= threshold]
@@ -114,7 +127,12 @@ RATING_ORDER = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4}
 
 @main.command()
 @click.argument("path", type=click.Path(exists=True))
-@click.option("--fail-above", type=int, default=None, help="Exit with code 1 if debt score exceeds this value")
+@click.option(
+    "--fail-above",
+    type=int,
+    default=None,
+    help="Exit with code 1 if debt score exceeds this value",
+)
 @click.option(
     "--fail-rating",
     type=click.Choice(["A", "B", "C", "D", "E"]),

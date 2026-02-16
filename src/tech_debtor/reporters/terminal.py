@@ -75,7 +75,9 @@ def render_terminal(
         console.print(f" [{color}]{label}[/{color}]  {location}")
         console.print(f"   {f.message}")
         console.print(f"   [dim]→ {f.suggestion}[/dim]")
-        console.print(f"   [dim]Remediation: ~{f.remediation_minutes} min | Severity: {f.severity.name.lower()}[/dim]\n")
+        console.print(
+            f"   [dim]Remediation: ~{f.remediation_minutes} min | Severity: {f.severity.name.lower()}[/dim]\n"
+        )
 
     # Summary
     score = report.debt_score
@@ -88,13 +90,21 @@ def render_terminal(
     for f in findings:
         severity_counts[f.severity] += 1
     counts_str = ", ".join(
-        f"{count} {sev.name.lower()}" for sev, count in sorted(severity_counts.items(), reverse=True) if count > 0
+        f"{count} {sev.name.lower()}"
+        for sev, count in sorted(severity_counts.items(), reverse=True)
+        if count > 0
     )
 
     console.rule()
-    console.print(f" Debt Score: [{rating_color}]{score}/100 ({rating})[/{rating_color}]")
+    console.print(
+        f" Debt Score: [{rating_color}]{score}/100 ({rating})[/{rating_color}]"
+    )
     console.print(f" Total items: {len(findings)} ({counts_str})")
-    console.print(f" Est. remediation: ~{hours:.0f} hours" if hours >= 1 else f" Est. remediation: ~{total_minutes} min")
+    console.print(
+        f" Est. remediation: ~{hours:.0f} hours"
+        if hours >= 1
+        else f" Est. remediation: ~{total_minutes} min"
+    )
 
     # Hotspots (top 3 churned files with findings)
     if churn:
@@ -122,9 +132,11 @@ def render_terminal(
     if filtered:
         panel_text += "\n[dim](filtered: metrics reflect selected checks only)[/dim]"
 
-    console.print(Panel(
-        panel_text,
-        title="SQALE Metrics",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            panel_text,
+            title="SQALE Metrics",
+            border_style="cyan",
+        )
+    )
     console.print()

@@ -34,4 +34,6 @@ def tree_to_classes(root: Node) -> list[Node]:
 
 
 class Analyzer(Protocol):
-    def analyze(self, file_path: str, source: str, tree: Tree, config: Config) -> list[Finding]: ...
+    def analyze(
+        self, file_path: str, source: str, tree: Tree, config: Config
+    ) -> list[Finding]: ...

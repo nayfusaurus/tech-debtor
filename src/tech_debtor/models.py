@@ -84,7 +84,9 @@ class ProjectReport:
     def debt_score(self) -> int:
         if self.total_lines == 0:
             return 0
-        raw = (self.total_remediation_minutes / (self.total_lines * self.cost_per_line)) * 100
+        raw = (
+            self.total_remediation_minutes / (self.total_lines * self.cost_per_line)
+        ) * 100
         return min(100, int(raw))
 
     @property

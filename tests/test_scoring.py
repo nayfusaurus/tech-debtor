@@ -4,9 +4,14 @@ from tech_debtor.models import Finding, DebtType, Severity
 
 def _make_finding(file_path: str, severity: Severity, minutes: int) -> Finding:
     return Finding(
-        file_path=file_path, line=1, end_line=10,
-        debt_type=DebtType.COMPLEXITY, severity=severity,
-        message="test", suggestion="test", remediation_minutes=minutes,
+        file_path=file_path,
+        line=1,
+        end_line=10,
+        debt_type=DebtType.COMPLEXITY,
+        severity=severity,
+        message="test",
+        suggestion="test",
+        remediation_minutes=minutes,
     )
 
 

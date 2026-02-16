@@ -1,4 +1,5 @@
 """Tests for SQALE metrics (models, JSON output, CLI --fail-rating)."""
+
 from __future__ import annotations
 
 import json
@@ -26,16 +27,18 @@ def _make_report(
     """Helper to build a ProjectReport with a single file and a single finding."""
     findings = []
     if remediation_minutes > 0:
-        findings.append(Finding(
-            file_path="fake.py",
-            line=1,
-            end_line=1,
-            debt_type=DebtType.COMPLEXITY,
-            severity=Severity.MEDIUM,
-            message="test finding",
-            suggestion="fix it",
-            remediation_minutes=remediation_minutes,
-        ))
+        findings.append(
+            Finding(
+                file_path="fake.py",
+                line=1,
+                end_line=1,
+                debt_type=DebtType.COMPLEXITY,
+                severity=Severity.MEDIUM,
+                message="test finding",
+                suggestion="fix it",
+                remediation_minutes=remediation_minutes,
+            )
+        )
     file_report = FileReport(
         file_path="fake.py",
         lines_of_code=loc,
@@ -52,6 +55,7 @@ def _make_report(
 # SQALE Index
 # ============================================================================
 
+
 def test_sqale_index_equals_total_remediation():
     report = _make_report(remediation_minutes=500)
     assert report.sqale_index_minutes == 500
@@ -61,6 +65,7 @@ def test_sqale_index_equals_total_remediation():
 # ============================================================================
 # Technical Debt Ratio
 # ============================================================================
+
 
 def test_tdr_formula():
     # 500 min / (10000 * 0.5) = 500 / 5000 = 0.1 = 10%
@@ -76,6 +81,7 @@ def test_tdr_zero_lines():
 # ============================================================================
 # SQALE Rating Thresholds
 # ============================================================================
+
 
 def test_sqale_rating_a():
     # TDR = 50 / (10000 * 0.5) * 100 = 1%
@@ -135,6 +141,7 @@ def test_zero_lines_rating():
 # Configurable Thresholds
 # ============================================================================
 
+
 def test_custom_thresholds():
     # Stricter thresholds: A <= 3%, B <= 6%
     report = _make_report(
@@ -166,6 +173,7 @@ def test_custom_thresholds_lenient():
 # JSON Output
 # ============================================================================
 
+
 def test_sqale_in_json_output():
     report = _make_report(loc=10000, remediation_minutes=500)
     output = render_json(report, {})
@@ -184,6 +192,7 @@ def test_sqale_in_json_output():
 # ============================================================================
 # CLI --fail-rating
 # ============================================================================
+
 
 def test_fail_rating_passes(tmp_path):
     """--fail-rating C should pass when rating is A."""

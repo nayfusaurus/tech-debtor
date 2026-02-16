@@ -16,7 +16,9 @@ def test_render_json():
         remediation_minutes=45,
         symbol="process",
     )
-    file_report = FileReport(file_path="src/foo.py", lines_of_code=200, findings=[finding])
+    file_report = FileReport(
+        file_path="src/foo.py", lines_of_code=200, findings=[finding]
+    )
     report = ProjectReport(file_reports=[file_report])
 
     output = render_json(report, churn={})

@@ -8,8 +8,12 @@ from tech_debtor.models import DebtType, Finding, Severity
 
 # Constants for resource functions that should use context managers
 RESOURCE_FUNCTIONS = {
-    "open", "socket", "socket.socket", "sqlite3.connect",
-    "urllib.request.urlopen", "tempfile.NamedTemporaryFile",
+    "open",
+    "socket",
+    "socket.socket",
+    "sqlite3.connect",
+    "urllib.request.urlopen",
+    "tempfile.NamedTemporaryFile",
 }
 
 # Broad exception types that are typically too generic
@@ -19,6 +23,7 @@ BROAD_EXCEPTION_TYPES = {"Exception", "BaseException"}
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
 
 def _find_first_identifier_text(node: Node) -> str | None:
     """Find first identifier child and return its decoded text."""
@@ -48,7 +53,9 @@ def _is_swallowed_exception(block: Node) -> bool:
 
     # Get the actual block content
     if block.type == "block":
-        statements = [c for c in block.children if c.type != ":" and c.type != "comment"]
+        statements = [
+            c for c in block.children if c.type != ":" and c.type != "comment"
+        ]
         if len(statements) == 0:
             return True
         if len(statements) == 1 and statements[0].type == "pass_statement":
@@ -74,8 +81,11 @@ def _is_singleton(node: Node) -> bool:
     """Check if node is None, True, or False."""
     if not node:
         return False
-    return node.type in ("none", "true", "false") or \
-           (node.type == "identifier" and node.text is not None and node.text.decode() in ("None", "True", "False"))
+    return node.type in ("none", "true", "false") or (
+        node.type == "identifier"
+        and node.text is not None
+        and node.text.decode() in ("None", "True", "False")
+    )
 
 
 def _get_call_name(call_node: Node) -> str:
@@ -156,7 +166,9 @@ def _get_division_operator(op: Node) -> str | None:
     return None
 
 
-def _check_zero_literal_division(op: Node, right: Node, file_path: str) -> Finding | None:
+def _check_zero_literal_division(
+    op: Node, right: Node, file_path: str
+) -> Finding | None:
     """Return a Finding if right operand is a zero literal, else None."""
     if not right.text:
         return None
@@ -178,7 +190,9 @@ def _check_zero_literal_division(op: Node, right: Node, file_path: str) -> Findi
     )
 
 
-def _check_unguarded_variable_division(op: Node, right: Node, file_path: str) -> Finding | None:
+def _check_unguarded_variable_division(
+    op: Node, right: Node, file_path: str
+) -> Finding | None:
     """Return a Finding if division by variable lacks a zero guard, else None."""
     if right.type != "identifier" or not right.text:
         return None
@@ -202,24 +216,33 @@ def _check_unguarded_variable_division(op: Node, right: Node, file_path: str) ->
 # ExceptionAnalyzer Class
 # ============================================================================
 
+
 class ExceptionAnalyzer:
     """Detects exception handling anti-patterns (ISO 5055 Reliability)."""
 
-    def analyze(self, file_path: str, source: str, tree: Tree, config: Config) -> list[Finding]:
+    def analyze(
+        self, file_path: str, source: str, tree: Tree, config: Config
+    ) -> list[Finding]:
         findings = []
         root = tree.root_node
 
         # CWE-703: Improper Exception Handling (always enabled with config toggles)
-        findings.extend(self._detect_improper_exception_handling(root, file_path, config))
+        findings.extend(
+            self._detect_improper_exception_handling(root, file_path, config)
+        )
 
         if config.check_resource_leaks:
-            findings.extend(self._detect_missing_resource_release(root, file_path, config))
+            findings.extend(
+                self._detect_missing_resource_release(root, file_path, config)
+            )
 
         if config.check_float_comparison:
             findings.extend(self._detect_float_comparison(root, file_path, config))
 
         if config.check_object_comparison:
-            findings.extend(self._detect_object_reference_comparison(root, file_path, config))
+            findings.extend(
+                self._detect_object_reference_comparison(root, file_path, config)
+            )
 
         if config.check_divide_by_zero:
             findings.extend(self._detect_divide_by_zero(root, file_path, config))
@@ -228,7 +251,9 @@ class ExceptionAnalyzer:
             findings.extend(self._detect_uncaught_exceptions(root, file_path, config))
 
         if config.check_unchecked_returns:
-            findings.extend(self._detect_unchecked_return_values(root, file_path, config))
+            findings.extend(
+                self._detect_unchecked_return_values(root, file_path, config)
+            )
 
         return findings
 
@@ -247,29 +272,36 @@ class ExceptionAnalyzer:
 
             # Check for bare except (no exception type)
             if exception_type is None and not config.allow_bare_except:
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.EXCEPTION,
-                    severity=Severity.HIGH,
-                    message="CWE-703: Bare except clause catches all exceptions including system exits",
-                    suggestion="Specify exception type(s) explicitly, e.g., 'except ValueError:' or 'except (TypeError, KeyError):'",
-                    remediation_minutes=5,
-                ))
+                findings.append(
+                    Finding(
+                        file_path=file_path,
+                        line=line,
+                        end_line=end_line,
+                        debt_type=DebtType.EXCEPTION,
+                        severity=Severity.HIGH,
+                        message="CWE-703: Bare except clause catches all exceptions including system exits",
+                        suggestion="Specify exception type(s) explicitly, e.g., 'except ValueError:' or 'except (TypeError, KeyError):'",
+                        remediation_minutes=5,
+                    )
+                )
 
             # Check for broad exception types
-            elif exception_type in BROAD_EXCEPTION_TYPES and not config.allow_broad_except:
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.EXCEPTION,
-                    severity=Severity.MEDIUM,
-                    message=f"CWE-703: Overly broad exception catch ({exception_type})",
-                    suggestion="Catch specific exception types (ValueError, TypeError, etc.) instead of broad Exception",
-                    remediation_minutes=5,
-                ))
+            elif (
+                exception_type in BROAD_EXCEPTION_TYPES
+                and not config.allow_broad_except
+            ):
+                findings.append(
+                    Finding(
+                        file_path=file_path,
+                        line=line,
+                        end_line=end_line,
+                        debt_type=DebtType.EXCEPTION,
+                        severity=Severity.MEDIUM,
+                        message=f"CWE-703: Overly broad exception catch ({exception_type})",
+                        suggestion="Catch specific exception types (ValueError, TypeError, etc.) instead of broad Exception",
+                        remediation_minutes=5,
+                    )
+                )
 
             # Check for swallowed exceptions (except: pass)
             block = None
@@ -279,16 +311,18 @@ class ExceptionAnalyzer:
                     break
 
             if block and _is_swallowed_exception(block):
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.EXCEPTION,
-                    severity=Severity.HIGH,
-                    message="CWE-703: Exception silently swallowed (pass statement only)",
-                    suggestion="Log the exception, re-raise it, or handle it explicitly",
-                    remediation_minutes=10,
-                ))
+                findings.append(
+                    Finding(
+                        file_path=file_path,
+                        line=line,
+                        end_line=end_line,
+                        debt_type=DebtType.EXCEPTION,
+                        severity=Severity.HIGH,
+                        message="CWE-703: Exception silently swallowed (pass statement only)",
+                        suggestion="Log the exception, re-raise it, or handle it explicitly",
+                        remediation_minutes=10,
+                    )
+                )
 
         return findings
 
@@ -305,7 +339,9 @@ class ExceptionAnalyzer:
             # Check if this is a resource function
             is_resource = False
             for resource_func in RESOURCE_FUNCTIONS:
-                if call_name == resource_func or call_name.endswith(f".{resource_func}"):
+                if call_name == resource_func or call_name.endswith(
+                    f".{resource_func}"
+                ):
                     is_resource = True
                     break
 
@@ -320,17 +356,19 @@ class ExceptionAnalyzer:
             line = call.start_point[0] + 1
             end_line = call.end_point[0] + 1
 
-            findings.append(Finding(
-                file_path=file_path,
-                line=line,
-                end_line=end_line,
-                debt_type=DebtType.EXCEPTION,
-                severity=Severity.HIGH,
-                message=f"CWE-772: Resource '{call_name}' opened without context manager",
-                suggestion=f"Use 'with {call_name}(...) as resource:' to ensure proper cleanup",
-                remediation_minutes=10,
-                symbol=call_name,
-            ))
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line=line,
+                    end_line=end_line,
+                    debt_type=DebtType.EXCEPTION,
+                    severity=Severity.HIGH,
+                    message=f"CWE-772: Resource '{call_name}' opened without context manager",
+                    suggestion=f"Use 'with {call_name}(...) as resource:' to ensure proper cleanup",
+                    remediation_minutes=10,
+                    symbol=call_name,
+                )
+            )
 
         return findings
 
@@ -362,16 +400,18 @@ class ExceptionAnalyzer:
             line = comp.start_point[0] + 1
             end_line = comp.end_point[0] + 1
 
-            findings.append(Finding(
-                file_path=file_path,
-                line=line,
-                end_line=end_line,
-                debt_type=DebtType.EXCEPTION,
-                severity=Severity.MEDIUM,
-                message="CWE-1077: Floating point comparison using == or != is unreliable",
-                suggestion="Use math.isclose() for floating point comparisons",
-                remediation_minutes=5,
-            ))
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line=line,
+                    end_line=end_line,
+                    debt_type=DebtType.EXCEPTION,
+                    severity=Severity.MEDIUM,
+                    message="CWE-1077: Floating point comparison using == or != is unreliable",
+                    suggestion="Use math.isclose() for floating point comparisons",
+                    remediation_minutes=5,
+                )
+            )
 
         return findings
 
@@ -394,7 +434,9 @@ class ExceptionAnalyzer:
                 continue
 
             # Get operands (filter out 'is', 'is not', and 'not' keywords)
-            operands = [c for c in comp.children if c.type not in ("is", "is not", "not")]
+            operands = [
+                c for c in comp.children if c.type not in ("is", "is not", "not")
+            ]
 
             # Check if any operand is a singleton (None, True, False)
             # If ANY operand is a singleton, this is a valid use of 'is'
@@ -406,16 +448,18 @@ class ExceptionAnalyzer:
             line = comp.start_point[0] + 1
             end_line = comp.end_point[0] + 1
 
-            findings.append(Finding(
-                file_path=file_path,
-                line=line,
-                end_line=end_line,
-                debt_type=DebtType.EXCEPTION,
-                severity=Severity.MEDIUM,
-                message="CWE-595: Object comparison using 'is' instead of '=='",
-                suggestion="Use '==' for value comparison; 'is' should only be used with None, True, False",
-                remediation_minutes=5,
-            ))
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line=line,
+                    end_line=end_line,
+                    debt_type=DebtType.EXCEPTION,
+                    severity=Severity.MEDIUM,
+                    message="CWE-595: Object comparison using 'is' instead of '=='",
+                    suggestion="Use '==' for value comparison; 'is' should only be used with None, True, False",
+                    remediation_minutes=5,
+                )
+            )
 
         return findings
 
@@ -470,16 +514,18 @@ class ExceptionAnalyzer:
                 line = raise_stmt.start_point[0] + 1
                 end_line = raise_stmt.end_point[0] + 1
 
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.EXCEPTION,
-                    severity=Severity.LOW,
-                    message="CWE-248: Exception raised without try/except handler",
-                    suggestion="Consider wrapping in try/except or document that caller must handle",
-                    remediation_minutes=5,
-                ))
+                findings.append(
+                    Finding(
+                        file_path=file_path,
+                        line=line,
+                        end_line=end_line,
+                        debt_type=DebtType.EXCEPTION,
+                        severity=Severity.LOW,
+                        message="CWE-248: Exception raised without try/except handler",
+                        suggestion="Consider wrapping in try/except or document that caller must handle",
+                        remediation_minutes=5,
+                    )
+                )
 
         return findings
 
@@ -507,8 +553,18 @@ class ExceptionAnalyzer:
             # Skip common side-effect functions
             call_name = _get_call_name(call)
             side_effect_functions = {
-                "print", "append", "extend", "remove", "pop", "clear",
-                "update", "add", "write", "close", "flush", "seek",
+                "print",
+                "append",
+                "extend",
+                "remove",
+                "pop",
+                "clear",
+                "update",
+                "add",
+                "write",
+                "close",
+                "flush",
+                "seek",
             }
 
             if any(call_name.endswith(f) for f in side_effect_functions):
@@ -517,16 +573,18 @@ class ExceptionAnalyzer:
             line = expr_stmt.start_point[0] + 1
             end_line = expr_stmt.end_point[0] + 1
 
-            findings.append(Finding(
-                file_path=file_path,
-                line=line,
-                end_line=end_line,
-                debt_type=DebtType.EXCEPTION,
-                severity=Severity.LOW,
-                message=f"CWE-252: Return value of '{call_name}' is not checked",
-                suggestion="Assign return value to variable or explicitly ignore with '_'",
-                remediation_minutes=5,
-                symbol=call_name,
-            ))
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line=line,
+                    end_line=end_line,
+                    debt_type=DebtType.EXCEPTION,
+                    severity=Severity.LOW,
+                    message=f"CWE-252: Return value of '{call_name}' is not checked",
+                    suggestion="Assign return value to variable or explicitly ignore with '_'",
+                    remediation_minutes=5,
+                    symbol=call_name,
+                )
+            )
 
         return findings

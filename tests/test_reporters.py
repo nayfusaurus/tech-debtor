@@ -14,7 +14,9 @@ def _make_report() -> ProjectReport:
         remediation_minutes=45,
         symbol="process",
     )
-    file_report = FileReport(file_path="src/foo.py", lines_of_code=200, findings=[finding])
+    file_report = FileReport(
+        file_path="src/foo.py", lines_of_code=200, findings=[finding]
+    )
     return ProjectReport(file_reports=[file_report])
 
 
@@ -31,4 +33,8 @@ def test_render_terminal_empty_report(capsys):
     report = ProjectReport(file_reports=[])
     render_terminal(report, churn={})
     captured = capsys.readouterr()
-    assert "No findings" in captured.out or "Excellent" in captured.out or "0" in captured.out
+    assert (
+        "No findings" in captured.out
+        or "Excellent" in captured.out
+        or "0" in captured.out
+    )

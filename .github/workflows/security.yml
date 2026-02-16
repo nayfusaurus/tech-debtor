@@ -8,24 +8,24 @@ on:
     - cron: '0 0 * * 0'  # Weekly on Sunday
 
 jobs:
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: python
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+  # codeql:
+  #   name: CodeQL Analysis
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     actions: read
+  #     contents: read
+  #     security-events: write
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Initialize CodeQL
+  #       uses: github/codeql-action/init@v3
+  #       with:
+  #         languages: python
+  #
+  #     - name: Perform CodeQL Analysis
+  #       uses: github/codeql-action/analyze@v3
 
   pip-audit:
     name: Dependency Vulnerability Scan

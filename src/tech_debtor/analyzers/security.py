@@ -107,38 +107,42 @@ def _get_node_text(node: Node) -> str:
     return ""
 
 
+def _get_kwarg_value(child: Node, key: str) -> str | None:
+    """Get value of a keyword argument if it matches the key, else None."""
+    name_node = child.child_by_field_name("name")
+    if not name_node or _get_node_text(name_node) != key:
+        return None
+    value_node = child.child_by_field_name("value")
+    return _get_node_text(value_node) if value_node else None
+
+
 def _has_keyword_argument(call_node: Node, key: str, values: set[str] | None = None) -> bool:
     """Check if a call has a specific keyword argument with optional value matching."""
     args = call_node.child_by_field_name("arguments")
     if not args:
         return False
     for child in args.children:
-        if child.type == "keyword_argument":
-            name_node = child.child_by_field_name("name")
-            if name_node and _get_node_text(name_node) == key:
-                if values is None:
-                    return True
-                value_node = child.child_by_field_name("value")
-                if value_node:
-                    val_text = _get_node_text(value_node)
-                    if val_text in values:
-                        return True
+        if child.type != "keyword_argument":
+            continue
+        val = _get_kwarg_value(child, key)
+        if val is None:
+            continue
+        if values is None:
+            return True
+        if val in values:
+            return True
     return False
 
 
 def _matches_credential_keyword(name: str) -> bool:
     """Check if variable name matches common credential patterns."""
     name_lower = name.lower()
-    for keyword in CREDENTIAL_KEYWORDS:
-        if keyword in name_lower:
-            return True
-    return False
+    return any(keyword in name_lower for keyword in CREDENTIAL_KEYWORDS)
 
 
 def _get_string_content(node: Node) -> str:
     """Get the content of a string node, stripping quotes and prefixes."""
     text = _get_node_text(node)
-    # Strip surrounding quotes and prefixes
     for prefix in ('f"""', "f'''", 'f"', "f'", 'b"""', "b'''", 'b"', "b'", '"""', "'''", '"', "'"):
         if text.startswith(prefix):
             text = text[len(prefix):]
@@ -153,6 +157,76 @@ def _get_string_content(node: Node) -> str:
 def _string_contains_sql(text: str) -> bool:
     """Check if a string contains SQL keywords."""
     return bool(SQL_KEYWORD_PATTERN.search(text))
+
+
+def _is_fstring(text: str) -> bool:
+    """Check if text represents an f-string literal."""
+    return text.startswith(('f"', "f'", 'f"""', "f'''"))
+
+
+def _check_api_key_match(text: str) -> str | None:
+    """Return API key description if text matches a known pattern, else None."""
+    for pattern, description in API_KEY_PATTERNS:
+        if pattern.search(text):
+            return description
+    return None
+
+
+def _get_module_name_from_node(node: Node, node_type: str) -> str | None:
+    """Extract module name from an import node. Returns None to skip."""
+    if node_type == "import_from_statement":
+        module_node = node.child_by_field_name("module_name")
+        return _get_node_text(module_node) if module_node else None
+    # import_statement: find first dotted_name child
+    for child in node.children:
+        if child.type == "dotted_name":
+            return _get_node_text(child)
+    return None
+
+
+def _has_sql_concat(op: Node) -> bool:
+    """Check if a binary_operator has SQL string + non-literal (injection risk)."""
+    op_text = _get_node_text(op)
+    if "+" not in op_text:
+        return False
+    has_sql_string = False
+    has_non_literal = False
+    for child in op.children:
+        if child.type == "string" and _string_contains_sql(_get_string_content(child)):
+            has_sql_string = True
+        elif child.type not in ("+", "string"):
+            has_non_literal = True
+    return has_sql_string and has_non_literal
+
+
+def _is_sql_fstring(string_node: Node) -> bool:
+    """Check if a string node is an f-string with SQL keywords and interpolation."""
+    text = _get_node_text(string_node)
+    if not text or not _is_fstring(text):
+        return False
+    content = _get_string_content(string_node)
+    if not _string_contains_sql(content):
+        return False
+    return bool(_find_nodes(string_node, "interpolation"))
+
+
+def _make_finding(
+    file_path: str, node: Node, severity: Severity,
+    message: str, suggestion: str, minutes: int,
+    symbol: str | None = None,
+) -> Finding:
+    """Create a security Finding from a node."""
+    return Finding(
+        file_path=file_path,
+        line=node.start_point[0] + 1,
+        end_line=node.end_point[0] + 1,
+        debt_type=DebtType.SECURITY,
+        severity=severity,
+        message=message,
+        suggestion=suggestion,
+        remediation_minutes=minutes,
+        symbol=symbol,
+    )
 
 
 # ============================================================================
@@ -188,122 +262,82 @@ class SecurityAnalyzer:
     ) -> list[Finding]:
         """Detect CWE-798: hard-coded credentials in assignments and API key patterns."""
         findings: list[Finding] = []
+        self._check_credential_assignments(root, file_path, findings)
+        self._check_api_key_strings(root, file_path, findings)
+        return findings
 
-        # Part A: Assignment-based detection
-        assignments = _find_nodes(root, "assignment")
-        for assign in assignments:
+    def _check_credential_assignments(
+        self, root: Node, file_path: str, findings: list[Finding]
+    ) -> None:
+        """Part A: Find assignments where credential-named variable = string literal."""
+        for assign in _find_nodes(root, "assignment"):
             left = assign.child_by_field_name("left")
             right = assign.child_by_field_name("right")
-
             if not left or not right:
                 continue
 
             var_name = _get_node_text(left)
-            if not var_name:
+            if not var_name or not _matches_credential_keyword(var_name):
                 continue
-
-            # Check if variable name matches credential keywords
-            if not _matches_credential_keyword(var_name):
-                continue
-
-            # Only flag if right side is a string literal (not a function call, variable, etc.)
             if right.type != "string":
                 continue
 
-            # Skip empty strings (placeholder patterns)
             string_content = _get_string_content(right)
             if not string_content or string_content.strip() == "":
                 continue
 
-            line = assign.start_point[0] + 1
-            end_line = assign.end_point[0] + 1
-
-            findings.append(Finding(
-                file_path=file_path,
-                line=line,
-                end_line=end_line,
-                debt_type=DebtType.SECURITY,
-                severity=Severity.CRITICAL,
-                message=f"CWE-798: Hard-coded credential in variable '{var_name}'",
-                suggestion="Use environment variables (os.getenv()) or a secrets manager instead of hard-coding credentials",
-                remediation_minutes=15,
-                symbol=var_name,
+            findings.append(_make_finding(
+                file_path, assign, Severity.CRITICAL,
+                f"CWE-798: Hard-coded credential in variable '{var_name}'",
+                "Use environment variables (os.getenv()) or a secrets manager instead of hard-coding credentials",
+                15, symbol=var_name,
             ))
 
-        # Part B: API key pattern detection in all string literals
-        strings = _find_nodes(root, "string")
-        for string_node in strings:
+    def _check_api_key_strings(
+        self, root: Node, file_path: str, findings: list[Finding]
+    ) -> None:
+        """Part B: Find string literals matching known API key patterns."""
+        for string_node in _find_nodes(root, "string"):
             text = _get_string_content(string_node)
             if not text:
                 continue
-
-            for pattern, description in API_KEY_PATTERNS:
-                if pattern.search(text):
-                    line = string_node.start_point[0] + 1
-                    end_line = string_node.end_point[0] + 1
-
-                    findings.append(Finding(
-                        file_path=file_path,
-                        line=line,
-                        end_line=end_line,
-                        debt_type=DebtType.SECURITY,
-                        severity=Severity.CRITICAL,
-                        message=f"CWE-798: Possible {description} found in string literal",
-                        suggestion="Remove hard-coded keys; use environment variables or a secrets manager",
-                        remediation_minutes=15,
-                    ))
-                    break  # One finding per string
-
-        return findings
+            description = _check_api_key_match(text)
+            if description:
+                findings.append(_make_finding(
+                    file_path, string_node, Severity.CRITICAL,
+                    f"CWE-798: Possible {description} found in string literal",
+                    "Remove hard-coded keys; use environment variables or a secrets manager",
+                    15,
+                ))
 
     def _detect_unsafe_deserialization(
         self, root: Node, file_path: str
     ) -> list[Finding]:
         """Detect CWE-502: use of unsafe deserialization functions."""
         findings: list[Finding] = []
-        calls = _find_nodes(root, "call")
 
-        for call in calls:
+        for call in _find_nodes(root, "call"):
             call_name = _get_call_name(call)
 
-            # Check for yaml.load without SafeLoader
             if call_name in ("yaml.load", "yaml.unsafe_load"):
                 if call_name == "yaml.load":
                     safe_loaders = {"SafeLoader", "yaml.SafeLoader", "CSafeLoader", "yaml.CSafeLoader"}
                     if _has_keyword_argument(call, "Loader", safe_loaders):
-                        continue  # Safe usage
-
-                line = call.start_point[0] + 1
-                end_line = call.end_point[0] + 1
-
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.SECURITY,
-                    severity=Severity.HIGH,
-                    message=f"CWE-502: Unsafe deserialization via '{call_name}' allows arbitrary code execution",
-                    suggestion="Use yaml.safe_load() or pass Loader=yaml.SafeLoader explicitly",
-                    remediation_minutes=10,
-                    symbol=call_name,
+                        continue
+                findings.append(_make_finding(
+                    file_path, call, Severity.HIGH,
+                    f"CWE-502: Unsafe deserialization via '{call_name}' allows arbitrary code execution",
+                    "Use yaml.safe_load() or pass Loader=yaml.SafeLoader explicitly",
+                    10, symbol=call_name,
                 ))
                 continue
 
-            # Check for other unsafe deserialization functions
             if call_name in UNSAFE_DESERIALIZE_FUNCTIONS:
-                line = call.start_point[0] + 1
-                end_line = call.end_point[0] + 1
-
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.SECURITY,
-                    severity=Severity.HIGH,
-                    message=f"CWE-502: Unsafe deserialization via '{call_name}' allows arbitrary code execution",
-                    suggestion=f"Avoid '{call_name}'; use JSON or other safe serialization formats for untrusted data",
-                    remediation_minutes=20,
-                    symbol=call_name,
+                findings.append(_make_finding(
+                    file_path, call, Severity.HIGH,
+                    f"CWE-502: Unsafe deserialization via '{call_name}' allows arbitrary code execution",
+                    f"Avoid '{call_name}'; use JSON or other safe serialization formats for untrusted data",
+                    20, symbol=call_name,
                 ))
 
         return findings
@@ -313,57 +347,31 @@ class SecurityAnalyzer:
     ) -> list[Finding]:
         """Detect CWE-78: OS command injection and CWE-95: code injection."""
         findings: list[Finding] = []
-        calls = _find_nodes(root, "call")
 
-        for call in calls:
+        for call in _find_nodes(root, "call"):
             call_name = _get_call_name(call)
-            line = call.start_point[0] + 1
-            end_line = call.end_point[0] + 1
 
-            # CWE-95: eval() and exec() are always dangerous
             if call_name in CODE_EXEC_FUNCTIONS:
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.SECURITY,
-                    severity=Severity.CRITICAL,
-                    message=f"CWE-95: Use of '{call_name}()' allows arbitrary code execution",
-                    suggestion=f"Avoid '{call_name}()'; use ast.literal_eval() for data or safer alternatives",
-                    remediation_minutes=30,
-                    symbol=call_name,
+                findings.append(_make_finding(
+                    file_path, call, Severity.CRITICAL,
+                    f"CWE-95: Use of '{call_name}()' allows arbitrary code execution",
+                    f"Avoid '{call_name}()'; use ast.literal_eval() for data or safer alternatives",
+                    30, symbol=call_name,
                 ))
-                continue
-
-            # CWE-78: os.system / os.popen are always dangerous
-            if call_name in ALWAYS_DANGEROUS_COMMANDS:
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.SECURITY,
-                    severity=Severity.CRITICAL,
-                    message=f"CWE-78: '{call_name}()' is vulnerable to command injection",
-                    suggestion="Use subprocess.run() with a list of arguments (no shell=True)",
-                    remediation_minutes=20,
-                    symbol=call_name,
+            elif call_name in ALWAYS_DANGEROUS_COMMANDS:
+                findings.append(_make_finding(
+                    file_path, call, Severity.CRITICAL,
+                    f"CWE-78: '{call_name}()' is vulnerable to command injection",
+                    "Use subprocess.run() with a list of arguments (no shell=True)",
+                    20, symbol=call_name,
                 ))
-                continue
-
-            # CWE-78: subprocess with shell=True
-            if call_name in SUBPROCESS_FUNCTIONS:
-                if _has_keyword_argument(call, "shell", {"True"}):
-                    findings.append(Finding(
-                        file_path=file_path,
-                        line=line,
-                        end_line=end_line,
-                        debt_type=DebtType.SECURITY,
-                        severity=Severity.HIGH,
-                        message=f"CWE-78: '{call_name}()' called with shell=True is vulnerable to command injection",
-                        suggestion="Pass arguments as a list without shell=True: subprocess.run(['cmd', 'arg1', 'arg2'])",
-                        remediation_minutes=15,
-                        symbol=call_name,
-                    ))
+            elif call_name in SUBPROCESS_FUNCTIONS and _has_keyword_argument(call, "shell", {"True"}):
+                findings.append(_make_finding(
+                    file_path, call, Severity.HIGH,
+                    f"CWE-78: '{call_name}()' called with shell=True is vulnerable to command injection",
+                    "Pass arguments as a list without shell=True: subprocess.run(['cmd', 'arg1', 'arg2'])",
+                    15, symbol=call_name,
+                ))
 
         return findings
 
@@ -373,74 +381,23 @@ class SecurityAnalyzer:
         """Detect CWE-89: SQL injection via string concatenation or f-strings."""
         findings: list[Finding] = []
 
-        # Part A: String concatenation with SQL keywords
-        binary_ops = _find_nodes(root, "binary_operator")
-        for op in binary_ops:
-            op_text = _get_node_text(op)
-            if "+" not in op_text:
-                continue
-
-            has_sql_string = False
-            has_non_literal = False
-            for child in op.children:
-                if child.type == "string":
-                    content = _get_string_content(child)
-                    if _string_contains_sql(content):
-                        has_sql_string = True
-                elif child.type not in ("+",):
-                    if child.type != "string":
-                        has_non_literal = True
-
-            if has_sql_string and has_non_literal:
-                line = op.start_point[0] + 1
-                end_line = op.end_point[0] + 1
-
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.SECURITY,
-                    severity=Severity.HIGH,
-                    message="CWE-89: Possible SQL injection via string concatenation",
-                    suggestion="Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id=?', (user_id,))",
-                    remediation_minutes=15,
+        for op in _find_nodes(root, "binary_operator"):
+            if _has_sql_concat(op):
+                findings.append(_make_finding(
+                    file_path, op, Severity.HIGH,
+                    "CWE-89: Possible SQL injection via string concatenation",
+                    "Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id=?', (user_id,))",
+                    15,
                 ))
 
-        # Part B: f-strings with SQL keywords
-        strings = _find_nodes(root, "string")
-        for string_node in strings:
-            text = _get_node_text(string_node)
-            if not text:
-                continue
-
-            # Check if it's an f-string
-            if not (text.startswith('f"') or text.startswith("f'") or
-                    text.startswith('f"""') or text.startswith("f'''")):
-                continue
-
-            # Check for SQL keywords
-            content = _get_string_content(string_node)
-            if not _string_contains_sql(content):
-                continue
-
-            # Check for interpolation children
-            interpolations = _find_nodes(string_node, "interpolation")
-            if not interpolations:
-                continue
-
-            line = string_node.start_point[0] + 1
-            end_line = string_node.end_point[0] + 1
-
-            findings.append(Finding(
-                file_path=file_path,
-                line=line,
-                end_line=end_line,
-                debt_type=DebtType.SECURITY,
-                severity=Severity.HIGH,
-                message="CWE-89: Possible SQL injection via f-string interpolation",
-                suggestion="Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id=?', (user_id,))",
-                remediation_minutes=15,
-            ))
+        for string_node in _find_nodes(root, "string"):
+            if _is_sql_fstring(string_node):
+                findings.append(_make_finding(
+                    file_path, string_node, Severity.HIGH,
+                    "CWE-89: Possible SQL injection via f-string interpolation",
+                    "Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id=?', (user_id,))",
+                    15,
+                ))
 
         return findings
 
@@ -450,47 +407,28 @@ class SecurityAnalyzer:
         """Detect CWE-477: use of deprecated or removed stdlib modules."""
         findings: list[Finding] = []
 
-        # Check both `import X` and `from X import ...`
         for node_type in ("import_statement", "import_from_statement"):
-            nodes = _find_nodes(root, node_type)
-            for node in nodes:
-                if node_type == "import_from_statement":
-                    module_node = node.child_by_field_name("module_name")
-                    module_name = _get_node_text(module_node) if module_node else ""
-                else:
-                    # import_statement: first named child after "import" keyword
-                    for child in node.children:
-                        if child.type == "dotted_name":
-                            module_name = _get_node_text(child)
-                            break
-                    else:
-                        continue
-
+            for node in _find_nodes(root, node_type):
+                module_name = _get_module_name_from_node(node, node_type)
                 if not module_name:
                     continue
 
-                # Check top-level module (e.g. "distutils.core" -> "distutils")
                 top_module = module_name.split(".")[0]
                 if top_module not in DEPRECATED_STDLIB_MODULES:
                     continue
 
                 replacement, severity_hint, reason = DEPRECATED_STDLIB_MODULES[top_module]
                 severity = Severity.HIGH if severity_hint == "removed" else Severity.MEDIUM
-                suggestion = f"Replace '{top_module}' with '{replacement}'" if replacement else f"Remove usage of '{top_module}' — no direct replacement"
+                suggestion = (
+                    f"Replace '{top_module}' with '{replacement}'"
+                    if replacement
+                    else f"Remove usage of '{top_module}' — no direct replacement"
+                )
 
-                line = node.start_point[0] + 1
-                end_line = node.end_point[0] + 1
-
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.SECURITY,
-                    severity=severity,
-                    message=f"CWE-477: Import of deprecated/removed module '{module_name}' ({reason})",
-                    suggestion=suggestion,
-                    remediation_minutes=15,
-                    symbol=module_name,
+                findings.append(_make_finding(
+                    file_path, node, severity,
+                    f"CWE-477: Import of deprecated/removed module '{module_name}' ({reason})",
+                    suggestion, 15, symbol=module_name,
                 ))
 
         return findings

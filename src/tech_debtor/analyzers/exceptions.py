@@ -20,23 +20,24 @@ BROAD_EXCEPTION_TYPES = {"Exception", "BaseException"}
 # Helper Functions
 # ============================================================================
 
+def _find_first_identifier_text(node: Node) -> str | None:
+    """Find first identifier child and return its decoded text."""
+    for child in node.children:
+        if child.type == "identifier":
+            return child.text.decode() if child.text else None
+    return None
+
+
 def _get_exception_type(except_clause: Node) -> str | None:
     """Extract exception type from except clause."""
     for child in except_clause.children:
         if child.type == "identifier":
             return child.text.decode() if child.text else None
-        # Handle cases like `except ValueError as e:`
-        if child.type == "as_pattern":
-            # Get the first child which is the exception type
-            for as_child in child.children:
-                if as_child.type == "identifier":
-                    return as_child.text.decode() if as_child.text else None
-        # Handle cases like `except (ValueError, TypeError):`
-        if child.type == "tuple":
-            # Return first exception for simplicity
-            for tuple_child in child.children:
-                if tuple_child.type == "identifier":
-                    return tuple_child.text.decode() if tuple_child.text else None
+        # Handle `except ValueError as e:` and `except (ValueError, TypeError):`
+        if child.type in ("as_pattern", "tuple"):
+            result = _find_first_identifier_text(child)
+            if result is not None:
+                return result
     return None
 
 
@@ -137,6 +138,64 @@ def _get_containing_function(node: Node) -> Node | None:
             return None
         current = current.parent
     return None
+
+
+def _get_division_operator(op: Node) -> str | None:
+    """Extract division operator (/, //, %) from a binary_operator node."""
+    for child in op.children:
+        if child.type in ("/", "//", "%"):
+            return child.type
+    # Fallback: check text content
+    op_text = op.text.decode() if op.text else ""
+    if "//" in op_text:
+        return "//"
+    if "/" in op_text:
+        return "/"
+    if "%" in op_text:
+        return "%"
+    return None
+
+
+def _check_zero_literal_division(op: Node, right: Node, file_path: str) -> Finding | None:
+    """Return a Finding if right operand is a zero literal, else None."""
+    if not right.text:
+        return None
+    try:
+        value = float(right.text.decode())
+    except ValueError:
+        return None
+    if value != 0:
+        return None
+    return Finding(
+        file_path=file_path,
+        line=op.start_point[0] + 1,
+        end_line=op.end_point[0] + 1,
+        debt_type=DebtType.EXCEPTION,
+        severity=Severity.CRITICAL,
+        message="CWE-369: Division by zero literal",
+        suggestion="Remove division by zero",
+        remediation_minutes=5,
+    )
+
+
+def _check_unguarded_variable_division(op: Node, right: Node, file_path: str) -> Finding | None:
+    """Return a Finding if division by variable lacks a zero guard, else None."""
+    if right.type != "identifier" or not right.text:
+        return None
+    var_name = right.text.decode()
+    func = _get_containing_function(op)
+    if func and _has_guard_condition(var_name, func):
+        return None
+    return Finding(
+        file_path=file_path,
+        line=op.start_point[0] + 1,
+        end_line=op.end_point[0] + 1,
+        debt_type=DebtType.EXCEPTION,
+        severity=Severity.MEDIUM,
+        message=f"CWE-369: Division by variable '{var_name}' without zero check",
+        suggestion=f"Add guard: if {var_name} != 0: before division",
+        remediation_minutes=10,
+    )
 
 
 # ============================================================================
@@ -364,85 +423,24 @@ class ExceptionAnalyzer:
         self, root: Node, file_path: str, config: Config
     ) -> list[Finding]:
         """Detect CWE-369: division by variable without zero check."""
-        findings = []
-        binary_ops = _find_nodes(root, "binary_operator")
+        findings: list[Finding] = []
 
-        for op in binary_ops:
-            # Get the operator
-            operator = None
-            for child in op.children:
-                if child.type in ("/", "//", "%"):
-                    operator = child.type
-                    break
-
-            if not operator:
-                # Check text content for operator
-                op_text = op.text.decode() if op.text else ""
-                if "/" not in op_text and "%" not in op_text:
-                    continue
-                # Determine operator from text
-                if "//" in op_text:
-                    operator = "//"
-                elif "/" in op_text:
-                    operator = "/"
-                elif "%" in op_text:
-                    operator = "%"
-                else:
-                    continue
-
-            # Get the denominator (right operand)
+        for op in _find_nodes(root, "binary_operator"):
+            if not _get_division_operator(op):
+                continue
             right = op.child_by_field_name("right")
             if not right:
                 continue
 
-            # Skip if denominator is a literal (non-zero literals are safe)
             if right.type in ("integer", "float"):
-                if not right.text:
-                    continue
-                # Check if it's zero
-                try:
-                    value = float(right.text.decode())
-                    if value == 0:
-                        # Division by zero literal - very bad!
-                        line = op.start_point[0] + 1
-                        end_line = op.end_point[0] + 1
-                        findings.append(Finding(
-                            file_path=file_path,
-                            line=line,
-                            end_line=end_line,
-                            debt_type=DebtType.EXCEPTION,
-                            severity=Severity.CRITICAL,
-                            message="CWE-369: Division by zero literal",
-                            suggestion="Remove division by zero",
-                            remediation_minutes=5,
-                        ))
-                except ValueError:
-                    # Denominator is not a numeric literal - skip this check
-                    continue
+                finding = _check_zero_literal_division(op, right, file_path)
+                if finding:
+                    findings.append(finding)
                 continue
 
-            # For variables, check if there's a guard condition
-            if right.type == "identifier" and right.text:
-                var_name = right.text.decode()
-                func = _get_containing_function(op)
-
-                # Skip if there's a guard condition
-                if func and _has_guard_condition(var_name, func):
-                    continue
-
-                line = op.start_point[0] + 1
-                end_line = op.end_point[0] + 1
-
-                findings.append(Finding(
-                    file_path=file_path,
-                    line=line,
-                    end_line=end_line,
-                    debt_type=DebtType.EXCEPTION,
-                    severity=Severity.MEDIUM,
-                    message=f"CWE-369: Division by variable '{var_name}' without zero check",
-                    suggestion=f"Add guard: if {var_name} != 0: before division",
-                    remediation_minutes=10,
-                ))
+            finding = _check_unguarded_variable_division(op, right, file_path)
+            if finding:
+                findings.append(finding)
 
         return findings
 

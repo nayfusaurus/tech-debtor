@@ -6,25 +6,49 @@ from tech_debtor.config import Config
 from tech_debtor.models import DebtType, Finding, Severity
 
 
+def _extract_import_names(node: Node) -> list[str]:
+    """Extract bound names from an import_statement (e.g. `import os`)."""
+    result: list[str] = []
+    for child in node.named_children:
+        if child.type == "dotted_name":
+            first = child.named_children[0] if child.named_children else child
+            result.append(first.text.decode() if first.text else "")
+    return result
+
+
+def _extract_from_import_names(node: Node) -> list[str]:
+    """Extract bound names from an import_from_statement (e.g. `from os import path`)."""
+    result: list[str] = []
+    for child in node.named_children:
+        if child.type == "dotted_name" and child != node.named_children[0]:
+            result.append(child.text.decode() if child.text else "")
+        elif child.type == "aliased_import":
+            name = _get_aliased_import_name(child)
+            if name:
+                result.append(name)
+    return result
+
+
+def _get_aliased_import_name(node: Node) -> str | None:
+    """Get the effective name from an aliased import (alias if present, else name)."""
+    alias = node.child_by_field_name("alias")
+    if alias and alias.text:
+        return alias.text.decode()
+    name_node = node.child_by_field_name("name")
+    if name_node and name_node.text:
+        return name_node.text.decode()
+    return None
+
+
 def _get_imported_names(root: Node) -> list[tuple[str, Node]]:
-    names = []
+    names: list[tuple[str, Node]] = []
     for node in root.children:
         if node.type == "import_statement":
-            for child in node.named_children:
-                if child.type == "dotted_name":
-                    first = child.named_children[0] if child.named_children else child
-                    names.append((first.text.decode() if first.text else "", node))
+            for name in _extract_import_names(node):
+                names.append((name, node))
         elif node.type == "import_from_statement":
-            for child in node.named_children:
-                if child.type == "dotted_name" and child != node.named_children[0]:
-                    names.append((child.text.decode() if child.text else "", node))
-                elif child.type == "aliased_import":
-                    alias = child.child_by_field_name("alias")
-                    name_node = child.child_by_field_name("name")
-                    if alias and alias.text:
-                        names.append((alias.text.decode(), node))
-                    elif name_node and name_node.text:
-                        names.append((name_node.text.decode(), node))
+            for name in _extract_from_import_names(node):
+                names.append((name, node))
     return names
 
 

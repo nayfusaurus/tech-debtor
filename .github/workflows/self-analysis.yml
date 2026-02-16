@@ -34,7 +34,7 @@ jobs:
           echo "files=$(jq -r '.total_files' analysis.json)" >> $GITHUB_OUTPUT
 
       - name: Upload analysis artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tech-debt-analysis-${{ github.sha }}
           path: analysis.json

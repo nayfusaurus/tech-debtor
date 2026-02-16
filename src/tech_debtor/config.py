@@ -39,6 +39,13 @@ class Config:
     check_unsafe_deserialization: bool = True
     check_command_injection: bool = True
     check_sql_injection: bool = True
+    check_deprecated_imports: bool = True
+
+    # SQALE configuration
+    sqale_threshold_a: float = 5.0
+    sqale_threshold_b: float = 10.0
+    sqale_threshold_c: float = 20.0
+    sqale_threshold_d: float = 50.0
 
 
 def load_config(project_path: Path) -> Config:
@@ -77,6 +84,11 @@ def load_config(project_path: Path) -> Config:
         "check-unsafe-deserialization": "check_unsafe_deserialization",
         "check-command-injection": "check_command_injection",
         "check-sql-injection": "check_sql_injection",
+        "check-deprecated-imports": "check_deprecated_imports",
+        "sqale-threshold-a": "sqale_threshold_a",
+        "sqale-threshold-b": "sqale_threshold_b",
+        "sqale-threshold-c": "sqale_threshold_c",
+        "sqale-threshold-d": "sqale_threshold_d",
     }
 
     kwargs = {}

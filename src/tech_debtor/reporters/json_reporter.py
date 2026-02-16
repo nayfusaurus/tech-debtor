@@ -15,6 +15,10 @@ def render_json(report: ProjectReport, churn: dict[str, int]) -> str:
         "total_files": report.total_files,
         "total_findings": report.total_findings,
         "total_remediation_minutes": report.total_remediation_minutes,
+        "sqale_index_minutes": report.sqale_index_minutes,
+        "sqale_index_hours": round(report.sqale_index_minutes / 60, 2),
+        "technical_debt_ratio": round(report.technical_debt_ratio, 2),
+        "sqale_rating": report.sqale_rating,
         "findings": [
             {
                 "file_path": f.file_path,

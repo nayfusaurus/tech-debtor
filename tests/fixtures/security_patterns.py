@@ -178,3 +178,24 @@ def sql_no_interpolation_fstring():
 def non_sql_fstring():
     msg = f"Hello {name}, welcome!"
     return msg
+
+
+# ============================================================================
+# CWE-477: Deprecated/removed stdlib imports - SHOULD FLAG
+# ============================================================================
+
+import imp  # noqa: F401
+import distutils  # noqa: F401
+import optparse  # noqa: F401
+from cgi import parse_header  # noqa: F401
+from pipes import quote  # noqa: F401
+
+
+# ============================================================================
+# CWE-477: Current stdlib imports - SHOULD NOT FLAG
+# ============================================================================
+
+import importlib  # noqa: F401
+import argparse  # noqa: F401
+from pathlib import Path  # noqa: F401
+import subprocess  # noqa: F811

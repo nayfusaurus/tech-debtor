@@ -397,6 +397,110 @@ def test_sql_injection_disabled(analyzer):
 
 
 # ============================================================================
+# CWE-477: Deprecated/Removed Stdlib Import Tests
+# ============================================================================
+
+def test_deprecated_import_imp(analyzer, config):
+    code = 'import imp'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert dep[0].severity == Severity.HIGH
+    assert "imp" in dep[0].message
+
+
+def test_deprecated_import_distutils(analyzer, config):
+    code = 'import distutils'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert dep[0].severity == Severity.HIGH
+
+
+def test_deprecated_import_from_cgi(analyzer, config):
+    code = 'from cgi import parse_header'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert "cgi" in dep[0].message
+
+
+def test_deprecated_import_optparse(analyzer, config):
+    code = 'import optparse'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert dep[0].severity == Severity.MEDIUM  # Deprecated, not removed
+
+
+def test_deprecated_import_dotted(analyzer, config):
+    code = 'import distutils.core'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert "distutils.core" in dep[0].message
+
+
+def test_current_import_no_flag(analyzer, config):
+    code = 'import importlib'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) == 0
+
+
+def test_current_from_import_no_flag(analyzer, config):
+    code = 'from pathlib import Path'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) == 0
+
+
+def test_deprecated_imports_disabled(analyzer):
+    config = Config(check_deprecated_imports=False)
+    code = 'import imp'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) == 0
+
+
+def test_deprecated_import_has_suggestion(analyzer, config):
+    code = 'import imp'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert "importlib" in dep[0].suggestion
+
+
+def test_removed_module_no_replacement(analyzer, config):
+    code = 'import nntplib'
+    tree = parse_python(code)
+    findings = analyzer.analyze("test.py", code, tree, config)
+
+    dep = [f for f in findings if "CWE-477" in f.message]
+    assert len(dep) >= 1
+    assert dep[0].severity == Severity.HIGH
+    assert "no direct replacement" in dep[0].suggestion.lower()
+
+
+# ============================================================================
 # Integration Tests
 # ============================================================================
 
@@ -411,12 +515,14 @@ def test_fixture_file_analysis(analyzer, config):
     cwe_78 = [f for f in findings if "CWE-78" in f.message]
     cwe_95 = [f for f in findings if "CWE-95" in f.message]
     cwe_89 = [f for f in findings if "CWE-89" in f.message]
+    cwe_477 = [f for f in findings if "CWE-477" in f.message]
 
     assert len(cwe_798) > 0, "Should detect hard-coded credentials"
     assert len(cwe_502) > 0, "Should detect unsafe deserialization"
     assert len(cwe_78) > 0, "Should detect command injection"
     assert len(cwe_95) > 0, "Should detect eval/exec"
     assert len(cwe_89) > 0, "Should detect SQL injection"
+    assert len(cwe_477) > 0, "Should detect deprecated imports"
 
 
 def test_all_findings_have_correct_type(analyzer, config):

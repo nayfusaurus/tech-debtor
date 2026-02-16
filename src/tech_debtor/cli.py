@@ -65,7 +65,14 @@ def _run_analysis(
             findings=findings,
         ))
 
-    report = ProjectReport(file_reports=file_reports, cost_per_line=config.cost_per_line)
+    report = ProjectReport(
+        file_reports=file_reports,
+        cost_per_line=config.cost_per_line,
+        sqale_threshold_a=config.sqale_threshold_a,
+        sqale_threshold_b=config.sqale_threshold_b,
+        sqale_threshold_c=config.sqale_threshold_c,
+        sqale_threshold_d=config.sqale_threshold_d,
+    )
     return report, churn
 
 
@@ -99,13 +106,22 @@ def analyze(path: str, check: str | None, as_json: bool, min_severity: str | Non
     if as_json:
         click.echo(render_json(report, churn))
     else:
-        render_terminal(report, churn)
+        render_terminal(report, churn, filtered=checks is not None)
+
+
+RATING_ORDER = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4}
 
 
 @main.command()
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--fail-above", type=int, default=None, help="Exit with code 1 if debt score exceeds this value")
-def score(path: str, fail_above: int | None):
+@click.option(
+    "--fail-rating",
+    type=click.Choice(["A", "B", "C", "D", "E"]),
+    default=None,
+    help="Exit with code 1 if SQALE rating is worse than this (e.g. --fail-rating C fails on D or E)",
+)
+def score(path: str, fail_above: int | None, fail_rating: str | None):
     """Show debt score summary."""
     target = Path(path)
     config = load_config(target if target.is_dir() else target.parent)
@@ -115,3 +131,7 @@ def score(path: str, fail_above: int | None):
 
     if fail_above is not None and report.debt_score > fail_above:
         raise SystemExit(1)
+
+    if fail_rating is not None:
+        if RATING_ORDER.get(report.sqale_rating, 4) > RATING_ORDER.get(fail_rating, 4):
+            raise SystemExit(1)

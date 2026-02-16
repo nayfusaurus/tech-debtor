@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from rich.console import Console
+from rich.panel import Panel
 
 from tech_debtor.models import ProjectReport, Severity, DebtType
 from tech_debtor.scoring import prioritize_findings
@@ -18,6 +19,7 @@ DEBT_TYPE_LABELS = {
     DebtType.DUPLICATION: "DUPLICATION",
     DebtType.DEAD_CODE: "DEAD CODE",
     DebtType.CHURN: "CHURN",
+    DebtType.EXCEPTION: "EXCEPTION",
     DebtType.SECURITY: "SECURITY",
 }
 
@@ -30,10 +32,28 @@ RATING_COLORS = {
 }
 
 
+SQALE_RATING_COLORS = {
+    "A": "bright_green",
+    "B": "green",
+    "C": "yellow",
+    "D": "red",
+    "E": "bright_red",
+}
+
+SQALE_RATING_LABELS = {
+    "A": "Excellent",
+    "B": "Good",
+    "C": "Fair",
+    "D": "Poor",
+    "E": "Critical",
+}
+
+
 def render_terminal(
     report: ProjectReport,
     churn: dict[str, int],
     console: Console | None = None,
+    filtered: bool = False,
 ) -> None:
     console = console or Console()
     findings = prioritize_findings(report.all_findings, churn)
@@ -87,4 +107,24 @@ def render_terminal(
             hotspots = sorted(file_churn, key=file_churn.get, reverse=True)[:3]  # type: ignore[arg-type]
             console.print(f" Hotspots: {', '.join(hotspots)}")
     console.rule()
+
+    # SQALE Metrics panel
+    sqale_hours = report.sqale_index_minutes / 60
+    rating = report.sqale_rating
+    rating_color = SQALE_RATING_COLORS.get(rating, "white")
+    rating_label = SQALE_RATING_LABELS.get(rating, "")
+
+    panel_text = (
+        f"[bold cyan]SQALE Index:[/bold cyan] {sqale_hours:.1f} hours ({report.sqale_index_minutes} min)\n"
+        f"[bold cyan]Technical Debt Ratio:[/bold cyan] {report.technical_debt_ratio:.1f}%\n"
+        f"[bold cyan]SQALE Rating:[/bold cyan] [{rating_color}]{rating}[/{rating_color}] ({rating_label})"
+    )
+    if filtered:
+        panel_text += "\n[dim](filtered: metrics reflect selected checks only)[/dim]"
+
+    console.print(Panel(
+        panel_text,
+        title="SQALE Metrics",
+        border_style="cyan",
+    ))
     console.print()

@@ -54,6 +54,12 @@ class ProjectReport:
     file_reports: list[FileReport] = field(default_factory=list)
     cost_per_line: float = 0.5
 
+    # SQALE rating thresholds (TDR percentages)
+    sqale_threshold_a: float = 5.0
+    sqale_threshold_b: float = 10.0
+    sqale_threshold_c: float = 20.0
+    sqale_threshold_d: float = 50.0
+
     @property
     def all_findings(self) -> list[Finding]:
         return [f for r in self.file_reports for f in r.findings]
@@ -80,6 +86,33 @@ class ProjectReport:
             return 0
         raw = (self.total_remediation_minutes / (self.total_lines * self.cost_per_line)) * 100
         return min(100, int(raw))
+
+    @property
+    def sqale_index_minutes(self) -> int:
+        """SQALE Index = sum of all remediation times."""
+        return self.total_remediation_minutes
+
+    @property
+    def technical_debt_ratio(self) -> float:
+        """TDR = (SQALE Index / Development Cost) x 100."""
+        dev_cost = self.total_lines * self.cost_per_line
+        if dev_cost <= 0:
+            return 0.0
+        return (self.sqale_index_minutes / dev_cost) * 100
+
+    @property
+    def sqale_rating(self) -> str:
+        """SQALE letter grade A-E based on TDR thresholds."""
+        tdr = self.technical_debt_ratio
+        if tdr <= self.sqale_threshold_a:
+            return "A"
+        if tdr <= self.sqale_threshold_b:
+            return "B"
+        if tdr <= self.sqale_threshold_c:
+            return "C"
+        if tdr <= self.sqale_threshold_d:
+            return "D"
+        return "E"
 
     @property
     def debt_rating(self) -> str:

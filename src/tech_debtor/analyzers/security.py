@@ -60,6 +60,33 @@ SQL_KEYWORD_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# CWE-477: Deprecated/removed stdlib modules
+DEPRECATED_STDLIB_MODULES: dict[str, tuple[str, str, str]] = {
+    # module: (replacement, severity_hint, reason)
+    # Removed in 3.12
+    "imp": ("importlib", "removed", "Removed in Python 3.12"),
+    "distutils": ("setuptools", "removed", "Removed in Python 3.12"),
+    # Deprecated in 3.11, removed in 3.13
+    "cgi": ("multipart", "removed", "Removed in Python 3.13"),
+    "cgitb": ("traceback", "removed", "Removed in Python 3.13"),
+    "pipes": ("subprocess", "removed", "Removed in Python 3.13"),
+    # Removed in 3.13
+    "nntplib": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "telnetlib": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "imghdr": ("", "removed", "Removed in Python 3.13 (use python-magic or filetype)"),
+    "sndhdr": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "audioop": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "aifc": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "chunk": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "sunau": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "xdrlib": ("", "removed", "Removed in Python 3.13 (no replacement)"),
+    "uu": ("base64", "removed", "Removed in Python 3.13"),
+    # Deprecated (still importable but discouraged)
+    "optparse": ("argparse", "deprecated", "Deprecated since Python 3.2"),
+    "formatter": ("", "deprecated", "Deprecated since Python 3.4 (no replacement)"),
+    "msilib": ("", "deprecated", "Deprecated since Python 3.11 (Windows only)"),
+}
+
 
 # ============================================================================
 # Helper Functions
@@ -150,6 +177,9 @@ class SecurityAnalyzer:
 
         if config.check_sql_injection:
             findings.extend(self._detect_sql_injection(root, file_path))
+
+        if config.check_deprecated_imports:
+            findings.extend(self._detect_deprecated_imports(root, file_path))
 
         return findings
 
@@ -411,5 +441,56 @@ class SecurityAnalyzer:
                 suggestion="Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id=?', (user_id,))",
                 remediation_minutes=15,
             ))
+
+        return findings
+
+    def _detect_deprecated_imports(
+        self, root: Node, file_path: str
+    ) -> list[Finding]:
+        """Detect CWE-477: use of deprecated or removed stdlib modules."""
+        findings: list[Finding] = []
+
+        # Check both `import X` and `from X import ...`
+        for node_type in ("import_statement", "import_from_statement"):
+            nodes = _find_nodes(root, node_type)
+            for node in nodes:
+                if node_type == "import_from_statement":
+                    module_node = node.child_by_field_name("module_name")
+                    module_name = _get_node_text(module_node) if module_node else ""
+                else:
+                    # import_statement: first named child after "import" keyword
+                    for child in node.children:
+                        if child.type == "dotted_name":
+                            module_name = _get_node_text(child)
+                            break
+                    else:
+                        continue
+
+                if not module_name:
+                    continue
+
+                # Check top-level module (e.g. "distutils.core" -> "distutils")
+                top_module = module_name.split(".")[0]
+                if top_module not in DEPRECATED_STDLIB_MODULES:
+                    continue
+
+                replacement, severity_hint, reason = DEPRECATED_STDLIB_MODULES[top_module]
+                severity = Severity.HIGH if severity_hint == "removed" else Severity.MEDIUM
+                suggestion = f"Replace '{top_module}' with '{replacement}'" if replacement else f"Remove usage of '{top_module}' — no direct replacement"
+
+                line = node.start_point[0] + 1
+                end_line = node.end_point[0] + 1
+
+                findings.append(Finding(
+                    file_path=file_path,
+                    line=line,
+                    end_line=end_line,
+                    debt_type=DebtType.SECURITY,
+                    severity=severity,
+                    message=f"CWE-477: Import of deprecated/removed module '{module_name}' ({reason})",
+                    suggestion=suggestion,
+                    remediation_minutes=15,
+                    symbol=module_name,
+                ))
 
         return findings

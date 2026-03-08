@@ -10,7 +10,7 @@ else:
     try:
         import tomli as tomllib
     except ImportError:
-        tomllib = None  # type: ignore[assignment]
+        tomllib = None
 
 
 @dataclass

@@ -7,6 +7,19 @@ license = "Apache-2.0"
 authors = [
     { name = "nayfusaurus", email = "35911760+nayfusaurus@users.noreply.github.com" }
 ]
+keywords = ["technical-debt", "code-quality", "static-analysis", "python", "linter"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
 requires-python = ">=3.12"
 dependencies = [
     "tree-sitter>=0.23",
@@ -15,6 +28,12 @@ dependencies = [
     "click>=8.0",
     "gitpython>=3.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/nayfusaurus/tech-debtor"
+Repository = "https://github.com/nayfusaurus/tech-debtor"
+Issues = "https://github.com/nayfusaurus/tech-debtor/issues"
+Changelog = "https://github.com/nayfusaurus/tech-debtor/releases"
 
 [project.scripts]
 tech-debtor = "tech_debtor.cli:main"
@@ -53,4 +72,5 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.15.0",
     "bandit>=1.7.0",
+    "ty>=0.0.21",
 ]

@@ -1,10 +1,22 @@
-# tech-debtor
+<p align="center">
+  <img src="assets/tech-debtor-logo.png" alt="tech-debtor logo" width="200">
+</p>
 
-[![Tests](https://github.com/nayfusaurus/tech-debtor/actions/workflows/test.yml/badge.svg)](https://github.com/nayfusaurus/tech-debtor/actions/workflows/test.yml)
-[![Lint](https://github.com/nayfusaurus/tech-debtor/actions/workflows/lint.yml/badge.svg)](https://github.com/nayfusaurus/tech-debtor/actions/workflows/lint.yml)
-[![Security](https://github.com/nayfusaurus/tech-debtor/actions/workflows/security.yml/badge.svg)](https://github.com/nayfusaurus/tech-debtor/actions/workflows/security.yml)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+<h1 align="center">tech-debtor</h1>
+
+<p align="center">
+  <em>Technical debt, accounted for.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/nayfusaurus/tech-debtor/actions/workflows/test.yml"><img src="https://github.com/nayfusaurus/tech-debtor/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/nayfusaurus/tech-debtor/actions/workflows/lint.yml"><img src="https://github.com/nayfusaurus/tech-debtor/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
+  <a href="https://github.com/nayfusaurus/tech-debtor/actions/workflows/security.yml"><img src="https://github.com/nayfusaurus/tech-debtor/actions/workflows/security.yml/badge.svg" alt="Security"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License: Apache 2.0"></a>
+</p>
+
+---
 
 A CLI tool that analyzes Python projects for technical debt and produces prioritized, actionable reports with remediation estimates.
 
@@ -163,6 +175,7 @@ uv sync
 uv run pytest -v              # Run tests
 uv run ruff check src/ tests/ # Lint
 uv run mypy src/              # Type check
+uv run ty check src/          # Type check (ty)
 uv run tech-debtor analyze src/ # Self-analysis
 ```
 
